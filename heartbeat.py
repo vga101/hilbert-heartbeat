@@ -142,7 +142,7 @@ class MyHandler(BaseHTTPRequestHandler):
                 visits[ID] = (ts, T, Timer(T, toolate, [ID]), overdue)
                 s.wfile.write(T) # ?
                 visits[ID][2].start()            
-           
+        # WHAT ELSE????    
         return 
 
 def test_server(HandlerClass = MyHandler, ServerClass = HTTPServer, protocol="HTTP/1.0"):
@@ -167,7 +167,7 @@ def test_client():
     print "Initial response: ", tt
     overdue = 0
     
-    for i in xrange(1, 20):
+    for i in xrange(1, 30):
         d = randint(0, (int(t) * 2)/1)
         
         print d, " > ", tt, "?"
@@ -188,7 +188,8 @@ def test_client():
         print "Pong: ", tt
         if tt == "dead":
             print "Ups: we run out of time..."
-            tt = urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/hb_dine?"+ "&appid="+ APP_ID ).read()
+            tt = urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/hb_done?0"+ "&appid="+ APP_ID ).read()
+            print "Goodbye message: ", tt
             break
     
     
