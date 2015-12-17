@@ -87,6 +87,25 @@ def toolate(ID):
 
 class MyHandler(BaseHTTPRequestHandler):
 #        s.headers, s.client_address, s.command, s.path, s.request_version, s.raw_requestline
+    def status(s, ID):
+        d = visits[ID]
+        
+        t =  d[0]
+        dd = d[1]
+        od = d[3]
+        
+        ## STATUS CODE???
+        
+        app = "application [" + str(ID) + "]| od="+str(od)+";1;3;0;10 delay="+str(dd)+";;; "
+        
+        if od == 0:
+            s.wfile.write("OK - fine " + app)
+        if od > 0:
+            s.wfile.write("WARNING - somewhat late " + app)
+        if od > 2:
+            s.wfile.write("CRITICAL - somewhat late " + app)
+
+
     def do_GET(s):
         global visits
 #        global overdue
@@ -98,7 +117,32 @@ class MyHandler(BaseHTTPRequestHandler):
         ### TODO: FIXME: the following url parsing is neither failsafe nor secure! :-(
         path, _, tail = s.path.partition('?')
         path = urllib.unquote(path)
+
+        if path == "/list":
+            for k, v in visits.iteritems():
+                s.wfile.write(str(k) + "\n")
+            return
+
         query = tail.split('&')
+        
+        if path == "/status":
+            if tail != "":
+                ID = query[0].split('=')[1] # + " @ " + s.client_address[0] # " || " + s.headers['User-Agent']
+                if ID in visits:
+                    s.status(ID)
+                else:
+                    s.wfile.write("CRITICAL - no application record for " + str(ID))
+            else:
+                if len(visits) == 1:
+                    ID = visits.iterkeys().next()
+                    s.status(ID)                    
+                elif len(visits) > 1:
+                    s.wfile.write("WARNING - multiple (" + str(len(visits)) + ") applications" )
+                else:
+                    s.wfile.write("UNKNOWN -  no heartbeats yes!" )
+                    
+            return
+        
         
         # PARSING: s.path -->>> path ? T & appid = ID        
         T = int(query[0])
@@ -163,8 +207,16 @@ def test_server(HandlerClass = MyHandler, ServerClass = HTTPServer, protocol="HT
 def test_client():
     t = randint(2, 5)
     APP_ID = "test_client_python%" + str(randint(99999999, 9999999999)) # TODO: get unique ID from server?
+
+    print "List HB apps: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/list" ).read()
+    print "APP HB Status: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/status" ).read()
+    
     tt = urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/hb_init?" + str(t) + "&appid="+ APP_ID ).read()
     print "Initial response: ", tt
+
+    print "List HB apps: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/list" ).read()
+    print "APP HB Status: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/status" ).read()
+    
     overdue = 0
     
     for i in xrange(1, 30):
@@ -183,13 +235,25 @@ def test_client():
         
         # heartbeat: 
         t = randint(0, 5)
+        
+        print "List HB apps: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/list" ).read()
+        print "APP HB Status: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/status" ).read()
+        
         print "Ping: ", t
         tt = urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/hb_ping?" + str(t) + "&appid="+ APP_ID ).read()
         print "Pong: ", tt
+        
+        print "List HB apps: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/list" ).read()
+        print "APP HB Status: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/status" ).read()
+        
         if tt == "dead":
             print "Ups: we run out of time..."
             tt = urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/hb_done?0"+ "&appid="+ APP_ID ).read()
             print "Goodbye message: ", tt
+
+            print "List HB apps: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/list" ).read()
+            print "APP HB Status: " + urlopen("http://" + HOST_NAME + ":" + str(PORT_NUMBER) + "/status" ).read()
+
             break
     
     
