@@ -53,7 +53,7 @@ from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 # https://docs.python.org/2/library/sched.html
 #### SH = sched.scheduler(time, sleep)
 
-PORT_NUMBER = 8080
+PORT_NUMBER = 8888
 HOST_NAME = 'localhost'
 
 # localhost:8080/hb_init?48&appid=test_client_python =>
@@ -219,7 +219,10 @@ def test_client():
     
     overdue = 0
     
-    for i in xrange(1, 30):
+    i = 0
+    for i in xrange(1, 15):
+#    while True:    
+        i = i + 1
         d = randint(0, (int(t) * 2)/1)
         
         print d, " > ", tt, "?"
