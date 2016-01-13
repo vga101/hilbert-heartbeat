@@ -63,9 +63,9 @@ class MyHandler(BaseHTTPRequestHandler):
         
         if od == 0:
             s.wfile.write("OK - fine " + app)
-        if od > 0:
+        elif od > 0:
             s.wfile.write("WARNING - somewhat late " + app)
-        if od > 2:
+        elif od > 2:
             s.wfile.write("CRITICAL - somewhat late " + app)
 
 
@@ -103,7 +103,7 @@ class MyHandler(BaseHTTPRequestHandler):
                 elif len(visits) > 1:
                     s.wfile.write("WARNING - multiple (" + str(len(visits)) + ") applications" )
                 else:
-                    s.wfile.write("UNKNOWN -  no heartbeats yes!" )
+                    s.wfile.write("UNKNOWN -  no heartbeat clients yet..." )
                     
             return
         
@@ -179,8 +179,8 @@ def test_client():
     tt = urlopen(HB_SERVER_URL + "/hb_init?" + str(t) + "&appid="+ APP_ID ).read()
     print "Initial response: ", tt
 
-    print "List HB apps: " + urlopen(HB_SERVER_URL + "/list" ).read()
-    print "APP HB Status: " + urlopen(HB_SERVER_URL + "/status" ).read()
+#    print "List HB apps: " + urlopen(HB_SERVER_URL + "/list" ).read()
+#    print "APP HB Status: " + urlopen(HB_SERVER_URL + "/status" ).read()
     
     overdue = 0
     
@@ -203,15 +203,15 @@ def test_client():
         # heartbeat: 
         t = randint(0, 5)
         
-        print "List HB apps: " + urlopen(HB_SERVER_URL + "/list" ).read()
-        print "APP HB Status: " + urlopen(HB_SERVER_URL + "/status" ).read()
+#        print "List HB apps: " + urlopen(HB_SERVER_URL + "/list" ).read()
+#        print "APP HB Status: " + urlopen(HB_SERVER_URL + "/status" ).read()
         
         print "Ping: ", t
         tt = urlopen(HB_SERVER_URL + "/hb_ping?" + str(t) + "&appid="+ APP_ID ).read()
         print "Pong: ", tt
         
-        print "List HB apps: " + urlopen(HB_SERVER_URL + "/list" ).read()
-        print "APP HB Status: " + urlopen(HB_SERVER_URL + "/status" ).read()
+#        print "List HB apps: " + urlopen(HB_SERVER_URL + "/list" ).read()
+#        print "APP HB Status: " + urlopen(HB_SERVER_URL + "/status" ).read()
         
         if tt == "dead": # Just for testing...
             
@@ -235,7 +235,7 @@ if __name__ == '__main__':
         test_server()
 
 #####################################################################
-### Initial HB design:
+### Initial HB design: https://gist.github.com/malex984/dbec16e9c7d88f295071
 ###
 
 ### Heartbeat:
