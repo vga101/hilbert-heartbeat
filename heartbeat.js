@@ -119,7 +119,7 @@
 
         this.url = _defaultUrl;
         this.appId = _defaultAppId;
-        this.interval = 1000;
+        this.interval = 5000;
         this.debug = false;
         this.timeout = null;
         this.ping = null;
