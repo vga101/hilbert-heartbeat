@@ -47,6 +47,7 @@
         debugLog("REQUEST: " + fullUrl);
         xhttp.open("GET", fullUrl, async);
         xhttp.send();
+        return xhttp;
     }
 
     var _defaultUrl = 'http://localhost:8888';
@@ -120,6 +121,7 @@
         this.url = _defaultUrl;
         this.appId = _defaultAppId;
         this.interval = 5000;
+        this.currentHbXhr = new XMLHttpRequest();
         this.debug = false;
         this.timeout = null;
         this.ping = null;
@@ -142,21 +144,28 @@
             var done = function() {
                 that.debugLog("send heartbeat done");
                 window.clearInterval(that.timeout);
-                _heartbeat(that.appId, that.url, _doneCommand, 0, false, that.debugLog);
+
+                // Abort current asynchronous heartbeat, if threre is one.
+                // Otherwise the currently running heartbeat request may be
+                // received by server *after* the synchronous `hb_done` heartbeat,
+                // i.e. the heartbeat events seem to be out of order.
+                that.currentHbXhr.abort();
+
+                that.currentHbXhr = _heartbeat(that.appId, that.url, _doneCommand, 0, false, that.debugLog);
             };
             window.addEventListener("unload", done, false);
         }
 
         this.ping = function() {
             that.debugLog("send heartbeat ping");
-            _heartbeat(that.appId, that.url, _pingCommand, that.interval, true, that.debugLog);
+            that.currentHbXhr = _heartbeat(that.appId, that.url, _pingCommand, that.interval, true, that.debugLog);
         }
 
         var init = function() {
             that.debugLog("init heartbeat library");
             if (options.hasOwnProperty("sendInitCommand") && options.sendInitCommand) {
                 that.debugLog("send heartbeat init");
-                _heartbeat(that.appId, that.url, _initCommand, that.interval, true, that.debugLog);
+                that.currentHbXhr = _heartbeat(that.appId, that.url, _initCommand, that.interval, true, that.debugLog);
             }
             that.setInterval(that.interval);
         }
