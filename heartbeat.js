@@ -142,7 +142,7 @@
             var done = function() {
                 that.debugLog("send heartbeat done");
                 window.clearInterval(that.timeout);
-                _heartbeat(this.appId, that.url, _doneCommand, 0, false, that.debugLog);
+                _heartbeat(that.appId, that.url, _doneCommand, 0, false, that.debugLog);
             };
             window.addEventListener("unload", done, false);
         }
