@@ -149,7 +149,7 @@
 
         this.ping = function() {
             that.debugLog("send heartbeat ping");
-            _heartbeat(that.appId, that.url, _initCommand, that.interval, true, that.debugLog);
+            _heartbeat(that.appId, that.url, _pingCommand, that.interval, true, that.debugLog);
         }
 
         var init = function() {
