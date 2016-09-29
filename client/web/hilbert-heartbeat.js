@@ -43,7 +43,7 @@
                 debugLog("RESPONSE: " + xhttp.responseText);
             }
         };
-        var fullUrl = url + "/" + command + "?" + interval + "&appid=" + appId + "&cache_buster=" + new Date().getTime()
+        var fullUrl = url + "/" + command + "?" + (interval/1000.0) + "&appid=" + appId + "&cache_buster=" + new Date().getTime()
         debugLog("REQUEST: " + fullUrl);
         xhttp.open("GET", fullUrl, async);
         xhttp.send();
