@@ -58,3 +58,7 @@ NOTE:
  * SERVER: send maximal time until next heartbeat (ms)
  * when container is starting, the management system is waiting for some predefined time (15 seconds? same as regular waiting time when the app is running properly) before expecting the first heartbeat; afterwards the protocol is self tuning
 
+
+## License
+This project is licensed under the [Apache v2 license](LICENSE). See also [Notice](NOTICE).
+
