@@ -2,12 +2,13 @@
 
 ## [Unreleased]
 
-### Added
+## [0.2.0] - 2017-04-18
 - [Semantic Versioning](http://semver.org/)
 - Changelog according to (http://keepachangelog.com/)
 - License: Apache v2
 - Git branching model
 - Merging original Gists 
+- Fixed Heartbeat Server for Python 3
 
 ### Changed
 - Restructurization of older `malex984/dockapp` to `hilbert/hilbert-*`
@@ -23,5 +24,9 @@
 - Integration of monitoring server (OMD) with Dashboard's back-end server via MKLiveStatus
 - First working system prototype using manual configurations
 
+
 [Unreleased]:
-https://github.com/hilbert/hilbert-heartbeat/compare/v0.1.0...HEAD
+https://github.com/hilbert/hilbert-heartbeat/compare/v0.2.0...HEAD
+
+[0.2.0]
+https://github.com/hilbert/hilbert-heartbeat/compare/v0.1.0...v0.2.0
