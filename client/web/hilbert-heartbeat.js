@@ -50,7 +50,7 @@
         return xhttp;
     }
 
-    var _defaultUrl = 'http://localhost:8888';
+    var _defaultUrl = '//localhost:8888';
     var _defaultAppId = 'browser_app';
 
     /**
@@ -100,7 +100,7 @@
      * @example
      * // Full initialization.
      * var heartbeat = new Heartbeat({
-     *     url: Heartbeat.getPassedUrl('http://localhost:8881'),
+     *     url: Heartbeat.getPassedUrl('//localhost:8881'),
      *     appId: Heartbeat.getPassedAppId('test_app'),
      *     interval: 5000,
      *     sendInitCommand: true,
