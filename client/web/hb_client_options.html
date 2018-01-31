@@ -9,11 +9,11 @@
 
 <a href="hb_client.html"><h3>Default <tt>hb_client.html</tt> (WITHOUT parameters!)</h3></a>
 
-<a href="hb_client.html?HB_URL=http://localhost:8888&APP_ID=browser_app"><h3><tt>hb_client.html?HB_URL=http://localhost:8888&APP_ID=browser_app_0000</tt></h3></a>
+<a href="hb_client.html?HB_URL=//localhost:8888&APP_ID=browser_app"><h3><tt>hb_client.html?HB_URL=//localhost:8888&APP_ID=browser_app_0000</tt></h3></a>
 
 <div>
     <form name="my_form">
-        HB_URL: <input type="text" name="hb_url" id="hb_url" value="????" readonly/> (to be set via <a href="hb_client.html?HB_URL=http://localhost:8888"><tt>hb_client.html?HB_URL=http://localhost:8888</tt></a>). <br/>
+        HB_URL: <input type="text" name="hb_url" id="hb_url" value="????" readonly/> (to be set via <a href="hb_client.html?HB_URL=//localhost:8888"><tt>hb_client.html?HB_URL=//localhost:8888</tt></a>). <br/>
         APP_ID: <input type="text" name="app_id" id="app_id" value="????" readonly/> (to be set via <a href="hb_client.html?APP_ID=browser_app_1111"><tt>hb_client.html?APP_ID=browser_app_1111</tt></a>). <br/>
         Interval: <input type="text" name="interval" value="2"/> seconds
     </form>
@@ -39,7 +39,7 @@ function getURLParameter(name) {
 // Shortcuts: // var hb_url = document.getElementById( "hb_url" );var app_name = document.getElementById( "app_id" ); 
 
 // parameters with hard-coded defaults:
-var HB_URL = getURLParameter('HB_URL' ) || "http://localhost:8888";
+var HB_URL = getURLParameter('HB_URL' ) || "//localhost:8888";
 var APP_ID = getURLParameter('APP_ID' ) || "browser_app_0000";
 
 // Just for show:
