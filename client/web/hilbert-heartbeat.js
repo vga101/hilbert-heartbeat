@@ -26,11 +26,6 @@
     var _pingCommand = 'hb_ping';
     var _doneCommand = 'hb_done';
 
-    var _onLoadCalled = false;
-    window.addEventListener("load", function() {
-        _onLoadCalled = true;
-    }, false);
-
     /**
      * Sends a HTTP request to the heartbeat server.
      * @private
@@ -169,7 +164,7 @@
             }
             that.setInterval(that.interval);
         }
-        if (_onLoadCalled) {
+        if (document.readyState !== "loading") {
             init();
         } else {
             window.addEventListener("load", init, false);
