@@ -60,7 +60,7 @@
      * @param {Object} options - JSON object containing initial heartbeat settings.
      * @param {String} [option.url] - The base URL to use when sending the heartbeat.
      * @param {String} [option.appId] - The application id that is send with each heartbeat.
-     * @param {Number} [option.interval=1000] - The interval between two heartbeat pings in milliseconds.
+     * @param {Number} [option.interval=1000] - The interval between two heartbeat pings in milliseconds. Values <= 0 will disable automatic heartbeat pings.
      * @param {Boolean} [option.sendInitCommand=false] - If the heartbeat init command should be send. If true, it will be send on the {@link window.onload} event or immediately if {@link window.onload} has already been triggered.
      * @param {Boolean} [option.sendDoneCommand=false] - If the heartbeat done command should be send. If true, it will be send on the {@link window.onunload} event.
      * @param {Heartbeat~debugLog} [option.debugLog=function(msg) {}] Callback function for debug messages.
@@ -271,13 +271,19 @@
      * out after the specified number of milliseconds.
      * @public
      * @param {Number} newInterval - Interval between future heartbeat pings.
+     *                               Values <= 0 disable automatic heartbeat pings.
      */
     this.Heartbeat.prototype.setInterval = function(newInterval) {
-        this._private.debugLog("set heartbeat interval to " + newInterval + "ms");
         window.clearInterval(this._private.timeout);
+        this._private.timeout = 0;
         this._private.interval = newInterval;
-        this.sendPing();
-        this._private.timeout = setInterval(() => this.sendPing(), this._private.interval);
+        if( this._private.interval > 0 ) {
+            this._private.debugLog("set heartbeat interval to " + newInterval + "ms");
+            this.sendPing();
+            this._private.timeout = setInterval(() => this.sendPing(), this._private.interval);
+        } else {
+            this._private.debugLog("disabling automatic heartbeat pings");
+        }
     }
 
     /**
