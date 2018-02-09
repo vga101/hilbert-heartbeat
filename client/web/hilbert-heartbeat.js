@@ -163,6 +163,11 @@
         debugLog("REQUEST: " + fullUrl);
         
         var xhttp = new XMLHttpRequest();
+        xhttp.ontimeout = function() {
+            debugLog("TIMEOUT for " + fullUrl);
+            if(typeof callback !== 'undefined' && callback != null)
+                callback(new Error("Timeout for " + fullUrl), null);
+        }
         xhttp.onreadystatechange = function() {
             if (xhttp.readyState == 4) {
                 var err = xhttp.status == 200 ? null : new Error("Request return with: " + xhttp.statusText);
@@ -173,6 +178,7 @@
             }
         }
         xhttp.open("GET", fullUrl, true);
+        xhttp.timeout = Math.max(10000,interval * 2);
         xhttp.send();
         return xhttp;
     }
