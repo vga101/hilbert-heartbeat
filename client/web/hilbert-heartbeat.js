@@ -263,7 +263,7 @@
         window.clearInterval(this._private.timeout);
         this._private.interval = newInterval;
         this.sendPing();
-        this._private.timeout = setInterval(this._private.ping, this._private.interval);
+        this._private.timeout = setInterval(() => this.sendPing(), this._private.interval);
     }
 
     /**
