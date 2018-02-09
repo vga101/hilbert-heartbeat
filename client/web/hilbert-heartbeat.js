@@ -98,7 +98,7 @@
         this._private.url = _defaultUrl;
         this._private.appId = _defaultAppId;
         this._private.interval = 5000;
-        this._private.currentHbXhr = new XMLHttpRequest();
+        this._private.currentHbXhrs = [];
         this._private.debug = false;
         this._private.timeout = null;
         this._private.ping = null;
@@ -180,6 +180,13 @@
         xhttp.open("GET", fullUrl, true);
         xhttp.timeout = Math.max(10000,interval * 2);
         xhttp.send();
+        
+        // Keep the request in a queue to be able to cancel all asynchronous
+        // requests when required (e.g. for the 'done' command). Already finsished
+        // requests will be filtered out.
+        var filterFunc = request => !( request.readyState == 4 );
+        this._private.currentHbXhrs = this._private.currentHbXhrs.filter( filterFunc );
+        this._private.currentHbXhrs.push(xhttp);
         return xhttp;
     }
 
@@ -242,7 +249,8 @@
         // Otherwise the currently running heartbeat request may be
         // received by server *after* the synchronous `hb_done` heartbeat,
         // i.e. the heartbeat events seem to be out of order.
-        this._private.currentHbXhr.abort();
+        this._private.currentHbXhrs.forEach( request => request.abort() );
+        this._private.currentHbXhrs = [];
         
         this.sendSync( window.Heartbeat.getDoneCommand(), this.getInterval() ); 
     }
