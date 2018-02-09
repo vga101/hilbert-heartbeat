@@ -118,7 +118,7 @@
             this._private.interval = options.interval;
         }
         if (options.hasOwnProperty("sendDoneCommand") && options.sendDoneCommand) {
-            window.addEventListener("unload", () => this._private.sendDone(), false);
+            window.addEventListener("unload", () => this.sendDone(), false);
         }
         
         this._private._createHeartbeatUrl = function(command, interval) {
