@@ -157,9 +157,11 @@
      *                                            success or failure.
      */
     this.Heartbeat.prototype.send = function(command, interval, callback) {
-        this._private.debugLog("send heartbeat: " + command );
+        var debugLog = this.getDebugLog();
+        debugLog("send heartbeat: " + command );
         var fullUrl = this._private._createHeartbeatUrl(command,interval);
-        this._private.debugLog("REQUEST: " + fullUrl);
+        debugLog("REQUEST: " + fullUrl);
+        
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
             if (xhttp.readyState == 4) {
@@ -195,9 +197,10 @@
       * @throws {Error} - In case the request didn't succeed.
       */
     this.Heartbeat.prototype.sendSync = function(command, interval) {
-        this._private.debugLog("send heartbeat: " + command );
+        var debugLog = this.getDebugLog();
+        debugLog("send heartbeat: " + command );
         var fullUrl = this._private._createHeartbeatUrl(command,interval);
-        this._private.debugLog("REQUEST: " + fullUrl);
+        debugLog("REQUEST: " + fullUrl);
         var xhttp = new XMLHttpRequest();
         xhttp.open("GET", fullUrl, false);
         xhttp.send();
