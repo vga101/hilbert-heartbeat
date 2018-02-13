@@ -26,25 +26,6 @@
     var _pingCommand = 'hb_ping';
     var _doneCommand = 'hb_done';
 
-    /**
-     * Sends a HTTP request to the heartbeat server.
-     * @private
-     * @static
-     */
-    function _heartbeat(appId, url, command, interval, async, debugLog) {
-        var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function() {
-            if (xhttp.readyState == 4 && xhttp.status == 200) {
-                debugLog("RESPONSE: " + xhttp.responseText);
-            }
-        };
-        var fullUrl = url + "/" + command + "?" + (interval/1000.0) + "&appid=" + appId + "&cache_buster=" + new Date().getTime()
-        debugLog("REQUEST: " + fullUrl);
-        xhttp.open("GET", fullUrl, async);
-        xhttp.send();
-        return xhttp;
-    }
-
     var _defaultUrl = '//localhost:8888';
     var _defaultAppId = 'browser_app';
 
@@ -79,7 +60,7 @@
      * @param {Object} options - JSON object containing initial heartbeat settings.
      * @param {String} [option.url] - The base URL to use when sending the heartbeat.
      * @param {String} [option.appId] - The application id that is send with each heartbeat.
-     * @param {Number} [option.interval=1000] - The interval between two heartbeat pings in milliseconds.
+     * @param {Number} [option.interval=1000] - The interval between two heartbeat pings in milliseconds. Values <= 0 will disable automatic heartbeat pings.
      * @param {Boolean} [option.sendInitCommand=false] - If the heartbeat init command should be send. If true, it will be send on the {@link window.onload} event or immediately if {@link window.onload} has already been triggered.
      * @param {Boolean} [option.sendDoneCommand=false] - If the heartbeat done command should be send. If true, it will be send on the {@link window.onunload} event.
      * @param {Heartbeat~debugLog} [option.debugLog=function(msg) {}] Callback function for debug messages.
@@ -112,74 +93,175 @@
             return new Heartbeat(options);
 
         var that = this;
+        this._private = {};
 
-        this.url = _defaultUrl;
-        this.appId = _defaultAppId;
-        this.interval = 5000;
-        this.currentHbXhr = new XMLHttpRequest();
-        this.debug = false;
-        this.timeout = null;
-        this.ping = null;
-        this.debugLog = function() {};
+        this._private.url = _defaultUrl;
+        this._private.appId = _defaultAppId;
+        this._private.interval = 5000;
+        this._private.currentHbXhrs = [];
+        this._private.debug = false;
+        this._private.timeout = null;
+        this._private.ping = null;
+        this._private.debugLog = function() {};
 
         //handle the options initialization here
         if (options.hasOwnProperty("debugLog")) {
-            this.debugLog = options.debugLog;
+            this._private.debugLog = options.debugLog;
         }
         if (options.hasOwnProperty("url")) {
-            this.url = options.url;
+            this._private.url = options.url;
         }
         if (options.hasOwnProperty("appId")) {
-            this.appId = options.appId;
+            this._private.appId = options.appId;
         }
         if (options.hasOwnProperty("interval")) {
-            this.interval = options.interval;
+            this._private.interval = options.interval;
         }
         if (options.hasOwnProperty("sendDoneCommand") && options.sendDoneCommand) {
-            var done = function() {
-                that.debugLog("send heartbeat done");
-                window.clearInterval(that.timeout);
-
-                // Abort current asynchronous heartbeat, if threre is one.
-                // Otherwise the currently running heartbeat request may be
-                // received by server *after* the synchronous `hb_done` heartbeat,
-                // i.e. the heartbeat events seem to be out of order.
-                that.currentHbXhr.abort();
-
-                that.currentHbXhr = _heartbeat(that.appId, that.url, _doneCommand, 0, false, that.debugLog);
-            };
-            window.addEventListener("unload", done, false);
+            window.addEventListener("unload", () => this.sendDone(), false);
+        }
+        
+        this._private._createHeartbeatUrl = function(command, interval) {
+            return that._private.url + "/" + command + "?" + (interval/1000.0) + "&appid=" + that._private.appId + "&cache_buster=" + new Date().getTime();
         }
 
-        this.ping = function() {
-            that.debugLog("send heartbeat ping");
-            that.currentHbXhr = _heartbeat(that.appId, that.url, _pingCommand, that.interval, true, that.debugLog);
-        }
-
-        var init = function() {
-            that.debugLog("init heartbeat library");
-            if (options.hasOwnProperty("sendInitCommand") && options.sendInitCommand) {
-                that.debugLog("send heartbeat init");
-                that.currentHbXhr = _heartbeat(that.appId, that.url, _initCommand, that.interval, true, that.debugLog);
+        {
+            var _init = function() {
+                that._private.debugLog("init heartbeat library");
+                if (options.hasOwnProperty("sendInitCommand") && options.sendInitCommand)
+                    that.sendInit();
+                that.setInterval(that._private.interval);
             }
-            that.setInterval(that.interval);
-        }
-        if (document.readyState !== "loading") {
-            init();
-        } else {
-            window.addEventListener("load", init, false);
+            if (document.readyState !== "loading") {
+                _init();
+            } else {
+                window.addEventListener("load", _init, false);
+            }
         }
     }
     // END - constructor
 
     // BEGIN - public members
     /**
+     * Generic method for sending heartbeat commands to a heartbeat server.
+     * The request will be send asynchronous, i.e. the method will return
+     * almost immediately, but the callback will be called a some point in
+     * the future.
+     * @public
+     * @param {String} command - The heartbeat command to be send.
+     * @param {Number} interval - The interval in ms the heartbeat server has
+     *                            to expect between this and the next heartbeat
+     *                            command.
+     * @returns {XMLHttpRequest}
+     * @param {Heartbeat~sendCallback} callback - Function to be called upon
+     *                                            success or failure.
+     */
+    this.Heartbeat.prototype.send = function(command, interval, callback) {
+        var debugLog = this.getDebugLog();
+        debugLog("send heartbeat: " + command );
+        var fullUrl = this._private._createHeartbeatUrl(command,interval);
+        debugLog("REQUEST: " + fullUrl);
+        
+        var xhttp = new XMLHttpRequest();
+        xhttp.ontimeout = function() {
+            debugLog("TIMEOUT for " + fullUrl);
+            if(typeof callback !== 'undefined' && callback != null)
+                callback(new Error("Timeout for " + fullUrl), null);
+        }
+        xhttp.onreadystatechange = function() {
+            if (xhttp.readyState == 4) {
+                var err = xhttp.status == 200 ? null : new Error("Request return with: " + xhttp.statusText);
+                if(!err)
+                    debugLog("RESPONSE: " + xhttp.responseText);
+                if(typeof callback !== 'undefined' && callback != null)
+                    callback(err,xhttp.responseText);
+            }
+        }
+        xhttp.open("GET", fullUrl, true);
+        xhttp.timeout = Math.max(10000,interval * 2);
+        xhttp.send();
+        
+        // Keep the request in a queue to be able to cancel all asynchronous
+        // requests when required (e.g. for the 'done' command). Already finsished
+        // requests will be filtered out.
+        var filterFunc = request => !( request.readyState == 4 );
+        this._private.currentHbXhrs = this._private.currentHbXhrs.filter( filterFunc );
+        this._private.currentHbXhrs.push(xhttp);
+        return xhttp;
+    }
+
+    /**
+     * A callback for the asynchronous send method.
+     * @callback Heartbeat~sendCallback
+     * @param {Error} error - null in case of success, and Error object otherwise.
+     * @param {String} responseMessage The response of the heartbeat server.
+     */
+
+     /**
+      * Generic method for sending heartbeat commands to a heartbeat server.
+      * The request will be send synchronous, i.e. the method will block
+      * until the request is finished.
+      * @public
+      * @param {String} command - The heartbeat command to be send.
+      * @param {Number} interval - The interval in ms the heartbeat server has
+      *                            to expect between this and the next heartbeat
+      *                            command.
+      * @returns {String} - The response of the heartbeat server.
+      * @throws {Error} - In case the request didn't succeed.
+      */
+    this.Heartbeat.prototype.sendSync = function(command, interval) {
+        var debugLog = this.getDebugLog();
+        debugLog("send heartbeat: " + command );
+        var fullUrl = this._private._createHeartbeatUrl(command,interval);
+        debugLog("REQUEST: " + fullUrl);
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("GET", fullUrl, false);
+        xhttp.send();
+        if(xhttp.status !== 200) {
+            throw new Error("Request return with: " + xhttp.statusText);
+        } else {
+            debugLog("RESPONSE: " + xhttp.responseText);
+            return xhttp.responseText;
+        }
+    }
+
+    /**
+     * Sends the init command asynchronously using default paramters and
+     * without error handling or feedback.
+     */
+    this.Heartbeat.prototype.sendInit = function() { this.send( window.Heartbeat.getInitCommand(), this.getInterval() ); }
+
+    /**
+     * Sends the ping command asynchronously using default paramters and
+     * without error handling or feedback.
+     */
+    this.Heartbeat.prototype.sendPing = function() { this.send( window.Heartbeat.getPingCommand(), this.getInterval() ); }
+
+    /**
+     * Sends the done command synchronously using default appId, 0ms interval
+     * and without error handling or feedback. No further heartbeats will be
+     * send after this command unless setInterval() is called again.
+     */
+    this.Heartbeat.prototype.sendDone = function() {
+        window.clearInterval(this._private.timeout);
+
+        // Abort current asynchronous heartbeat, if threre is one.
+        // Otherwise the currently running heartbeat request may be
+        // received by server *after* the synchronous `hb_done` heartbeat,
+        // i.e. the heartbeat events seem to be out of order.
+        this._private.currentHbXhrs.forEach( request => request.abort() );
+        this._private.currentHbXhrs = [];
+        
+        this.sendSync( window.Heartbeat.getDoneCommand(), this.getInterval() ); 
+    }
+
+    /**
      * Get the current interval between two heartbeat pings in milliseconds.
      * @public
      * @returns {Number}
      */
     this.Heartbeat.prototype.getInterval = function() {
-        return this.interval;
+        return this._private.interval;
     }
 
     /**
@@ -189,13 +271,19 @@
      * out after the specified number of milliseconds.
      * @public
      * @param {Number} newInterval - Interval between future heartbeat pings.
+     *                               Values <= 0 disable automatic heartbeat pings.
      */
     this.Heartbeat.prototype.setInterval = function(newInterval) {
-        this.debugLog("set heartbeat interval to " + newInterval + "ms");
-        window.clearInterval(this.timeout);
-        this.interval = newInterval;
-        this.ping();
-        this.timeout = setInterval(this.ping, this.interval);
+        window.clearInterval(this._private.timeout);
+        this._private.timeout = 0;
+        this._private.interval = newInterval;
+        if( this._private.interval > 0 ) {
+            this._private.debugLog("set heartbeat interval to " + newInterval + "ms");
+            this.sendPing();
+            this._private.timeout = setInterval(() => this.sendPing(), this._private.interval);
+        } else {
+            this._private.debugLog("disabling automatic heartbeat pings");
+        }
     }
 
     /**
@@ -204,7 +292,7 @@
      * @returns {Number}
      */
     this.Heartbeat.prototype.getUrl = function() {
-        return this.url;
+        return this._private.url;
     }
 
     /**
@@ -213,7 +301,7 @@
      * @returns {String}
      */
     this.Heartbeat.prototype.getAppId = function() {
-        return this.appId;
+        return this._private.appId;
     }
 
     /**
@@ -222,7 +310,7 @@
      * @returns {Heartbeat~debugLog}
      */
     this.Heartbeat.prototype.getDebugLog = function() {
-        return this.debugLog;
+        return this._private.debugLog;
     }
 
     /**
@@ -231,11 +319,35 @@
      * @param {Heartbeat~debugLog} debugLog
      */
     this.Heartbeat.prototype.setDebugLog = function(debugLog) {
-        this.debugLog == debugLog;
+        this._private.debugLog == debugLog;
     }
     // END - public members
 
     // BEGIN - public static members
+    /**
+     * Get the name of the 'init' command.
+     * @public
+     * @static
+     * @returns {String}
+     */
+    this.Heartbeat.getInitCommand = function() { return _initCommand; }
+
+    /**
+     * Get the name of the 'ping' command.
+     * @public
+     * @static
+     * @returns {String}
+     */
+    this.Heartbeat.getPingCommand = function() { return _pingCommand; }
+
+    /**
+     * Get the name of the 'done' command.
+     * @public
+     * @static
+     * @returns {String}
+     */
+    this.Heartbeat.getDoneCommand = function() { return _doneCommand; }
+    
     /**
      * Get the base URL that is passed as URL parameter HB_URL to this site.
      * If HB_URL is not set, {@link fallbackUrl} is used. If {@link fallbackUrl}
