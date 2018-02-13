@@ -310,7 +310,7 @@
     }
 
     /**
-     * Get the application identifier that is send with each heartbet command.
+     * Get the application identifier that is send with each heartbeat command.
      * @public
      * @returns {String}
      */
