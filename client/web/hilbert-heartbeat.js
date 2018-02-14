@@ -252,7 +252,7 @@
         this._private.currentHbXhrs.forEach( request => request.abort() );
         this._private.currentHbXhrs = [];
         
-        this.sendSync( window.Heartbeat.getDoneCommand(), this.getInterval() ); 
+        this.sendSync( window.Heartbeat.getDoneCommand(), 0 ); 
     }
 
     /**
