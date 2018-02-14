@@ -57,6 +57,8 @@
      *            signals to a HTTP server. Once initialized, there is usually
      *            no need to take further action except for changing the
      *            interval between subsequent heartbeats, see {@link Heartbeat#setInterval}.
+     *            Nevertheless, you can also disable automatic sending of heartbeat
+     *            pings and send various heartbeat commands yourself.
      * @param {Object} options - JSON object containing initial heartbeat settings.
      * @param {String} [option.url] - The base URL to use when sending the heartbeat.
      * @param {String} [option.appId] - The application id that is send with each heartbeat.
