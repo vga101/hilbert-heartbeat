@@ -283,6 +283,7 @@
             this.sendPing();
             this._private.timeout = setInterval(() => this.sendPing(), this._private.interval);
         } else {
+            this.abort();
             this._private.debugLog("disabling automatic heartbeat pings");
         }
     }
