@@ -1,6 +1,6 @@
 # JavaScript implementation of Hilbert's heartbeat protocol
 
-This JavaScript library implements the heartbeat protocol defined in the [top-level `README.md`](../../README.md).
+This JavaScript library implements the heartbeat protocol defined in the [top-level `README.md`](../../README.md). The API documentation is located in [`API.md`](API.md).
 
 The library has two basic operation modes: It can either send heartbeats automatically based on a fixed time interval or you can send them manually at appropriate locations in your code.
 
