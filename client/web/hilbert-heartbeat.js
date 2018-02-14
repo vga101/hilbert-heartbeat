@@ -249,8 +249,7 @@
         // Otherwise the currently running heartbeat request may be
         // received by server *after* the synchronous `hb_done` heartbeat,
         // i.e. the heartbeat events seem to be out of order.
-        this._private.currentHbXhrs.forEach( request => request.abort() );
-        this._private.currentHbXhrs = [];
+        this.abort();
         
         this.sendSync( window.Heartbeat.getDoneCommand(), 0 ); 
     }
@@ -268,7 +267,9 @@
      * Change the interval between two heartbeat pings.
      * This function sends out a heartbeat ping immediately to satisfy the
      * promise of the previous heartbeat. The next heartbeat will then be send
-     * out after the specified number of milliseconds.
+     * out after the specified number of milliseconds. If an interval <= 0 is
+     * supplied, all pending heartbeats will be aborted and automatic sending of
+     * heartbeats will be stopped.
      * @public
      * @param {Number} newInterval - Interval between future heartbeat pings.
      *                               Values <= 0 disable automatic heartbeat pings.
@@ -284,6 +285,18 @@
         } else {
             this._private.debugLog("disabling automatic heartbeat pings");
         }
+    }
+
+    /**
+     * Abort all currently pending heartbeats, if any.
+     */
+    this.Heartbeat.prototype.abort = function() {
+        var numAborted = 0;
+        this._private.currentHbXhrs
+            .filter( request => request.readyState !== 4 )
+            .forEach( request => { numAborted++; request.abort(); } );
+        this._private.currentHbXhrs = [];
+        this._private.debugLog("aborted " + numAborted + " heartbeat requests");
     }
 
     /**
