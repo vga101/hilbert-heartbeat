@@ -88,7 +88,7 @@ heartbeat.sendDone();
 Note that you still should not wait longer then `heartbeat.getInterval()` milliseconds until sending the next heartbeat.
 
 ### Full control over the heartbeat command
-The `send()` and `sendSync()` methods give you full control over the heartbeat requests sent.
+The `send()`, `sendSync()` and `sendBeacon()` methods give you full control over the heartbeat requests sent.
 
 #### Asynchronous operation
 Usually, heartbeats should be sent asynchronously:
@@ -103,13 +103,15 @@ var xhttp = heartbeat.send(Heartbeat.getPingCommand(),2000,cp);
 ```
 In this example, `xhttp` is a `XMLHttpRequest` object whose `send()` method has already been called. It can be useful if you need to abort a certain request. You should send the next heartbeat within the next two seconds after the current one.
 
+If you are not interested in the response of the heartbeat server, you should use `sendBeacon()` instead. It will only work with recent browser versions (because it relies on `navigator.sendBeacon()`), but if it is available, it will also work on an `unload` event, e.g. for sending the `hb_done` command (which might not be delivered on `unload` when `send()` or `sendSync()` are used).
+
 #### Synchronous operation
-Sometimes, doing a blocking call can be useful, e.g. if you want to the send the `hb_done` command (because if you send it asynchronous and directly exit your program afterwards, the request might get lost):
+Sometimes, doing a blocking call can be useful:
 ```
 heartbeat.abort();
 var response = heartbeat.sendSync(Heartbeat.getDoneCommand(),0);
 ```
-The `abort()` command beforehand makes sure that no other asynchronous requests are in the pipeline before the `hb_done` command is send out. Otherwise, the heartbeat server might receive them out of order.
+The `abort()` command beforehand makes sure that no other asynchronous requests are in the pipeline before the `hb_done` command is send out. Otherwise, the heartbeat server might receive them out of order. Note that using `sendSync()` on an `unload` event might not work as expected. Use `sendBeacon()` instead.
 
 ## Generating the API documentation
 

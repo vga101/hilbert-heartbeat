@@ -16,6 +16,7 @@ This class provides functionality to send regular heartbeat
     * _instance_
         * [.send(command, interval, callback)](#Heartbeat+send) ⇒ <code>XMLHttpRequest</code>
         * [.sendSync(command, interval)](#Heartbeat+sendSync) ⇒ <code>String</code>
+        * [.sendBeacon(command, interval)](#Heartbeat+sendBeacon) ⇒ <code>Boolean</code>
         * [.sendInit()](#Heartbeat+sendInit)
         * [.sendPing()](#Heartbeat+sendPing)
         * [.sendDone()](#Heartbeat+sendDone)
@@ -83,7 +84,7 @@ var heartbeat = new Heartbeat({
 
 ### heartbeat.send(command, interval, callback) ⇒ <code>XMLHttpRequest</code>
 Generic method for sending heartbeat commands to a heartbeat server.
-The request will be send asynchronous, i.e. the method will return
+A HTTP GET request will be send asynchronously, i.e. the method will return
 almost immediately, but the callback will be called a some point in
 the future.
 
@@ -100,7 +101,7 @@ the future.
 
 ### heartbeat.sendSync(command, interval) ⇒ <code>String</code>
 Generic method for sending heartbeat commands to a heartbeat server.
-The request will be send synchronous, i.e. the method will block
+A HTTP GET request will be send synchronously, i.e. the method will block
 until the request is finished.
 
 **Kind**: instance method of [<code>Heartbeat</code>](#Heartbeat)  
@@ -109,6 +110,24 @@ until the request is finished.
 
 - <code>Error</code> - In case the request didn't succeed.
 
+**Access**: public  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| command | <code>String</code> | The heartbeat command to be send. |
+| interval | <code>Number</code> | The interval in ms the heartbeat server has                            to expect between this and the next heartbeat                            command. |
+
+<a name="Heartbeat+sendBeacon"></a>
+
+### heartbeat.sendBeacon(command, interval) ⇒ <code>Boolean</code>
+Generic method for sending heartbeat commands to a heartbeat server.
+A HTTP POST request will be send asynchronously, but the method will wait
+until the request has been successfully queued or an error occured.
+
+**Kind**: instance method of [<code>Heartbeat</code>](#Heartbeat)  
+**Returns**: <code>Boolean</code> - - True if the request has been queued successfully,
+                     false otherwise. False will also be returned if this
+                     is not supported.  
 **Access**: public  
 
 | Param | Type | Description |
@@ -133,9 +152,11 @@ without error handling or feedback.
 <a name="Heartbeat+sendDone"></a>
 
 ### heartbeat.sendDone()
-Sends the done command synchronously using default appId, 0ms interval
-and without error handling or feedback. No further heartbeats will be
-send after this command unless setInterval() is called again.
+Sends the done using default appId, 0ms interval and without error
+handling or feedback. It will internally use the [sendBeacon](#Heartbeat+sendBeacon)
+method and fall back to [sendSync](#Heartbeat+sendSync) in case of an error. No further
+heartbeats will be send after this command unless setInterval() is called
+again.
 
 **Kind**: instance method of [<code>Heartbeat</code>](#Heartbeat)  
 <a name="Heartbeat+getInterval"></a>

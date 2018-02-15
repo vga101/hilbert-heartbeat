@@ -165,6 +165,8 @@ class MyHandler(BaseHTTPRequestHandler):
             # WHAT ELSE????
         return
 
+    def do_POST(s):
+        MyHandler.do_GET(s)
 
 def test_server(HandlerClass=MyHandler, ServerClass=HTTPServer, protocol="HTTP/1.0"):
     """Test the HTTP request handler class.

@@ -146,7 +146,7 @@
     // BEGIN - public members
     /**
      * Generic method for sending heartbeat commands to a heartbeat server.
-     * The request will be send asynchronous, i.e. the method will return
+     * A HTTP GET request will be send asynchronously, i.e. the method will return
      * almost immediately, but the callback will be called a some point in
      * the future.
      * @public
@@ -162,7 +162,7 @@
         var debugLog = this.getDebugLog();
         debugLog("send heartbeat: " + command );
         var fullUrl = this._private._createHeartbeatUrl(command,interval);
-        debugLog("REQUEST: " + fullUrl);
+        debugLog("GET REQUEST: " + fullUrl);
         
         var xhttp = new XMLHttpRequest();
         xhttp.ontimeout = function() {
@@ -201,7 +201,7 @@
 
      /**
       * Generic method for sending heartbeat commands to a heartbeat server.
-      * The request will be send synchronous, i.e. the method will block
+      * A HTTP GET request will be send synchronously, i.e. the method will block
       * until the request is finished.
       * @public
       * @param {String} command - The heartbeat command to be send.
@@ -215,7 +215,7 @@
         var debugLog = this.getDebugLog();
         debugLog("send heartbeat: " + command );
         var fullUrl = this._private._createHeartbeatUrl(command,interval);
-        debugLog("REQUEST: " + fullUrl);
+        debugLog("GET REQUEST: " + fullUrl);
         var xhttp = new XMLHttpRequest();
         xhttp.open("GET", fullUrl, false);
         xhttp.send();
@@ -225,6 +225,31 @@
             debugLog("RESPONSE: " + xhttp.responseText);
             return xhttp.responseText;
         }
+    }
+
+    /**
+     * Generic method for sending heartbeat commands to a heartbeat server.
+     * A HTTP POST request will be send asynchronously, but the method will wait
+     * until the request has been successfully queued or an error occured.
+     * 
+     * @public
+     * @param {String} command - The heartbeat command to be send.
+     * @param {Number} interval - The interval in ms the heartbeat server has
+     *                            to expect between this and the next heartbeat
+     *                            command.
+     * @returns {Boolean} - True if the request has been queued successfully,
+     *                      false otherwise. False will also be returned if this
+     *                      is not supported.
+     */
+    this.Heartbeat.prototype.sendBeacon = function(command,interval) {
+        if(!navigator.sendBeacon)
+            return false;
+            
+        var debugLog = this.getDebugLog();
+        debugLog("send heartbeat: " + command );
+        var fullUrl = this._private._createHeartbeatUrl(command,interval);
+        debugLog("POST REQUEST: " + fullUrl);
+        return navigator.sendBeacon(fullUrl);
     }
 
     /**
@@ -240,9 +265,11 @@
     this.Heartbeat.prototype.sendPing = function() { this.send( window.Heartbeat.getPingCommand(), this.getInterval() ); }
 
     /**
-     * Sends the done command synchronously using default appId, 0ms interval
-     * and without error handling or feedback. No further heartbeats will be
-     * send after this command unless setInterval() is called again.
+     * Sends the done using default appId, 0ms interval and without error
+     * handling or feedback. It will internally use the {@link Heartbeat#sendBeacon}
+     * method and fall back to {@link Heartbeat#sendSync} in case of an error. No further
+     * heartbeats will be send after this command unless setInterval() is called
+     * again.
      */
     this.Heartbeat.prototype.sendDone = function() {
         window.clearInterval(this._private.timeout);
@@ -253,7 +280,9 @@
         // i.e. the heartbeat events seem to be out of order.
         this.abort();
         
-        this.sendSync( window.Heartbeat.getDoneCommand(), 0 ); 
+        // first try to equeue a request, otherwise try to send synchronously
+        if( !this.sendBeacon( window.Heartbeat.getDoneCommand(), 0 ) )
+            this.sendSync( window.Heartbeat.getDoneCommand(), 0 ); 
     }
 
     /**
