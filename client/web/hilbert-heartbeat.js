@@ -135,7 +135,7 @@
                 that.setInterval(that._private.interval);
             }
             if (document.readyState !== "loading") {
-                _init();
+                setTimeout(_init,0);
             } else {
                 window.addEventListener("load", _init, false);
             }
