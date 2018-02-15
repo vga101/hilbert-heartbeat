@@ -47,6 +47,36 @@ var heartbeat = new Heartbeat({
 ```
 In the above example, the heartbeat pings will be sent once every five seconds and `hb_init` and `hb_done` commands will be send as well.
 
+Embedded into HTML, the above might look like this:
+```HTML
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Testing HB library for JS: hilbert-heartbeat.js </title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <script src="hilbert-heartbeat.js"></script>
+        <script>
+            var heartbeat;
+            window.onload = function() {
+                var responsesDiv = document.getElementById("responses");
+                heartbeat = new Heartbeat({
+                    url: Heartbeat.getPassedUrl('http://localhost:8888'),
+                    appId: Heartbeat.getPassedAppId('test_app'),
+                    interval: 5000,
+                    sendInitCommand: true,
+                    sendDoneCommand: true,
+                    debugLog: function(msg) { responsesDiv.innerHTML += msg + "<br />"; }
+                });
+            };
+        </script>
+    </head>
+    <body>
+        <h1>HB messages should follow : </h1><br /><hr />
+        <div id="responses"></div>
+    </body>
+</html>
+```
+
 ## Advanced usage
 ### Adjusting the interval
 If you have a long running task in your application that is likely to block the event queue for a while, you can raise the heartbeat interval to the expected duration of the computation (or better a bit higher):
