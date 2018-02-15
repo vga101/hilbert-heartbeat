@@ -104,7 +104,7 @@ var heartbeat = new Heartbeat({
 ```
 to disable it from the very beginning.
 
-Afterwards, you can use the `.sendPing()`, `sendInit()` and `sendDone()` commands:
+Afterwards, you can use the `sendPing()`, `sendInit()` and `sendDone()` commands:
 ```
 // beginning of your program
 heartbeat.sendInit();
