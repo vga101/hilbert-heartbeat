@@ -19,16 +19,6 @@ PORT_NUMBER = int(os.getenv('HB_PORT', 8888))
 HOST_NAME = os.getenv('HB_HOST', '127.0.0.1')
 HB_SERVER_URL = os.getenv('HB_URL', "http://" + HOST_NAME + ":" + str(PORT_NUMBER))
 
-# localhost:8888/hb_init?48&appid=test_client_python =>
-#         /hb_init
-#         [*] 
-#         ['48', 'appid=test_client_python']
-#         Accept-Encoding: identity
-#         Host: localhost:8080
-#         Connection: close
-#         User-Agent: Python-urllib/2.7
-#         
-#         ID: Python-urllib/2.7@127.0.0.1
 
 visits = {}
 
@@ -52,8 +42,10 @@ def toolate(ID):
 
 
 class MyHandler(BaseHTTPRequestHandler):
-    #        s.headers, s.client_address, s.command, s.path, s.request_version, s.raw_requestline
     def status(s, ID):
+        """
+        s: .headers, .client_address, .command, .path, .request_version, .raw_requestline
+        """
         d = visits[ID]
 
         t = d[0]
@@ -63,12 +55,12 @@ class MyHandler(BaseHTTPRequestHandler):
         app = "application [" + str(ID) + "]| od=" + str(od) + ";1;3;0;10 delay=" + str(dd) + ";;; "
 
         ## STATUS CODE???
-        if od == 0:
+        if od <=2:
             s.wfile.write(bytes("OK - fine " + app, 'UTF-8'))
         elif od > 2:
             s.wfile.write(bytes("WARNING - somewhat late " + app, 'UTF-8'))
         elif od > 4:
-            s.wfile.write(bytes("CRITICAL - somewhat late " + app, 'UTF-8'))
+            s.wfile.write(bytes("CRITICAL - quite late " + app, 'UTF-8'))
 
     def do_GET(s):
         global visits
@@ -79,11 +71,14 @@ class MyHandler(BaseHTTPRequestHandler):
         s.send_header('Access-Control-Allow-Origin', '*')
         s.end_headers()
 
+        # NOTE: URL "localhost:8888/hb_init?48&appid=test_client_python" should be parsed as follows:
+        #         '/hb_init', '48', 'appid=test_client_python']
         ### TODO: FIXME: the following url parsing is neither failsafe nor secure! :-(
         path, _, tail = s.path.partition('?')
         path = unquote(path)
 
         if path == "/list":
+            # NOTE: list currently tracked visits
             for k, v in visits.items():
                 s.wfile.write(bytes(str(k) + "\n", 'UTF-8'))
             return
@@ -91,6 +86,7 @@ class MyHandler(BaseHTTPRequestHandler):
         query = tail.split('&')
 
         if path == "/status":
+            # NOTE: query the status of currently tracked visits (compatible with )
             if tail != "":
                 ID = query[0].split('=')[1]  # + " @ " + s.client_address[0] # " || " + s.headers['User-Agent']
                 if ID in visits:
@@ -104,7 +100,7 @@ class MyHandler(BaseHTTPRequestHandler):
                 elif len(visits) > 1:
                     s.wfile.write(bytes("WARNING - multiple (" + str(len(visits)) + ") applications", 'UTF-8'))
                 else:
-                    s.wfile.write(bytes("UNKNOWN -  no heartbeat clients yet...", 'UTF-8'))
+                    s.wfile.write(bytes("UNKNOWN - no heartbeat clients at the moment...", 'UTF-8'))
 
             return
 
