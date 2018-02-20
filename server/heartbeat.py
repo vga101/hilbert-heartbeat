@@ -104,9 +104,9 @@ class MyHandler(BaseHTTPRequestHandler):
 
             return
 
-        # PARSING: s.path -->>> path ? T & appid = ID        
-        T = int(query[0])
+        # PARSING: s.path -->>> path ? T & appid = ID [& ...]
         ID = query[1].split('=')[1] + " @ " + s.client_address[0]  # " || " + s.headers['User-Agent']
+        T = float(query[0])/1000.0 # interval: floating number (in ms = 1/1000 s). Has to be converted into seconds
 
         if ID in visits:
             print("PREVIOUS STATE", visits[ID])
@@ -119,7 +119,7 @@ class MyHandler(BaseHTTPRequestHandler):
             print("Creation from scratch : ", ID, " at ", ts)
             T = T + 1  # max(10, (T*17)/16)
             visits[ID] = (ts, T, Timer(T, toolate, [ID]), 0)
-            s.wfile.write(bytes(str(T), 'UTF-8'))  # ?
+            s.wfile.write(bytes(str(1000.0*T), 'UTF-8'))  # ?
             visits[ID][2].start()
 
         elif ((path == "/hb_done") and (ID in visits)):
@@ -142,7 +142,7 @@ class MyHandler(BaseHTTPRequestHandler):
             #                del visits[ID] #??
             T = T + 1  # max(3, (T*11)/8)
             visits[ID] = (ts, T, Timer(T, toolate, [ID]), 0)
-            s.wfile.write(bytes(str(T), 'UTF-8'))
+            s.wfile.write(bytes(str(1000.0*T), 'UTF-8'))
             visits[ID][2].start()
             # WHAT ELSE????
         return

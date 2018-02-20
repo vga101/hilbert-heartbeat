@@ -39,7 +39,7 @@ def hb_read(msg):
     return str(urlopen(HB_SERVER_URL + msg).read().decode('UTF-8'))
 
 def test_client():
-    t = randint(2, 5)
+    t = float(randint(2000, 5000))
     #    APP_ID =  # + str(randint(99999999, 9999999999)) # TODO: get unique ID from server?
 
     print("List HB apps: {}".format(hb_read("/list")))
@@ -55,20 +55,20 @@ def test_client():
     #    while True:
     while tt != "dead":
         i = i + 1
-        d = randint(0, int((int(t) * 5) / 4))
+        d = float(randint(0, int(t* 5.0 / 4.0)))
 
         try:
-            if d > int(tt):
+            if d > float(tt):
                 print(d, " > ", tt, "?")
                 overdue += 1
         except:
             pass
 
         print("heart-beat: ", i, "! Promise: ", t, ", Max: ", tt, ", Delay: ", d, " sec........ overdues?: ", overdue)
-        sleep(d)
+        sleep(d/1000.0)
 
-        # heartbeat: 
-        t = randint(0, 5)
+        # next heartbeat ping:
+        t = float(randint(0, 5000))
 
         #        print "List HB apps: " + urlopen(HB_SERVER_URL + "/list" ).read()
         #        print "APP HB Status: " + urlopen(HB_SERVER_URL + "/status" ).read()
