@@ -5,40 +5,35 @@ from time import sleep
 from random import randint
 
 import os  # environment vars
-
-
-
 from urllib.request import urlopen
 
-# https://docs.python.org/2/library/sched.html
-#### SH = sched.scheduler(time, sleep)
+import signal
+import sys
 
 PORT_NUMBER = int(os.getenv('HB_PORT', 8888))
 HOST_NAME = os.getenv('HB_HOST', '127.0.0.1')
 HB_SERVER_URL = os.getenv('HB_URL', "http://" + HOST_NAME + ":" + str(PORT_NUMBER))
 
 # For the HB test client:
-APP_ID = os.getenv('APP_ID', 'heartbeat')
-
-# localhost:8888/hb_init?48&appid=test_client_python =>
-#         /hb_init
-#         [*] 
-#         ['48', 'appid=test_client_python']
-#         Accept-Encoding: identity
-#         Host: localhost:8080
-#         Connection: close
-#         User-Agent: Python-urllib/2.7
-#         
-#         ID: Python-urllib/2.7@127.0.0.1
-
-visits = {}
-
-# overdue = 0 # Just for now... TODO: FIXME?: should be a part of visit data, right?!
+APP_ID = os.getenv('APP_ID', 'python_heartbeat_client_demo')
 
 def hb_read(msg):
     return str(urlopen(HB_SERVER_URL + msg).read().decode('UTF-8'))
 
+def signal_handler(signal, frame):
+    print('NOTE: You pressed Ctrl+C!')
+
+    tt = hb_read("/hb_done?0" + "&appid=" + APP_ID)
+    print("Goodbye message: ", tt)
+
+    print("List HB apps: {}".format(hb_read("/list")))
+    print("APP HB Status: {}".format(hb_read("/status")))
+
+    sys.exit(0)
+
 def test_client():
+    signal.signal(signal.SIGINT, signal_handler)
+
     t = float(randint(2000, 5000))
     #    APP_ID =  # + str(randint(99999999, 9999999999)) # TODO: get unique ID from server?
 
