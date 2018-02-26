@@ -1,68 +1,65 @@
-# Current Heartbeat Protocol design
+# Hilbert heartbeat
 
-NOTE: in what follows **HB** stays for **Heartbeat**.
+This repository contains the protocol definition and implementations of notification based health-check mechanism, subsequently called heartbeat.
 
-## General HB principle:
+## HTTP Protocol
+The system consists of a HTTP client that sends heartbeat notifications and a HTTP server thats keeps track of these notifications and possible delays.
+
+After an application registers at the heartbeat server, it is supposed to send periodic heartbeats until it deregisters (to be deliberately stopped). If the heartbeats are not sent in time, the application is considered to be in a defective state by the heartbeat server which in turn may forward this information to a higher-level monitoring system. The time until the next heartbeat is supposed to be send is configurable in each request.
+
+### REST API
+The server must accepts three different commands via `HTTP` `GET`: 
+* `/hb_init?TIMEOUT&appid=APPLICATION_ID`: Register an application.  
+  * Parameters:
+    * `TIMEOUT` [ms]: The supplied value should account for application startup and initialization. The server must not consider the application delayed before this timeout.
+    * `APPLICATION_ID` [string]: The application ID to register.
+  * Response:
+    * [ms]: The actual timeout used by the server. Must be >= `TIMEOUT`.
+* `/hb_ping?TIMEOUT&appid=APPLICATION_ID`: Send a heartbeat.  
+  * Parameters:
+    * `TIMEOUT` [ms]: The value should generally be the same during application lifetime, but may be adjusted temporarily to account for long running computations. The server must not consider the application delayed before this timeout.
+    * `APPLICATION_ID` [string]: The application ID this ping belongs to.
+  * Response:
+    * [ms]: The actual timeout used by the server. Must be >= `TIMEOUT`.
+* `/hb_done?TIMEOUT&appid=APPLICATION_ID`: Deregister an application. Further heartbeats must not be sent for this application afterwards.  
+  * Parameters:
+    * `TIMEOUT` [ms]: Time until the application is supposed to have shutdown completely.
+    * `APPLICATION_ID` [string]: The application ID to deregister.
+  * Response:
+    * [string]: Arbitrary goodbye message.
+
+The server must accept the same requests via `POST` as well to account for certain limitations in the way client libraries work. In this case, no response needs to send by the server.
+
+### Sequence diagram
 
 ![Protocol Sequence Diagram:](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgSGVhcnRiZWF0IFByb3RvY29sCgpwYXJ0aWNpcGFudCAiSEIgU2VydmVyIgoACw9TdGFydAASBgoABAktPisAEAk6IHN0YXJ0IEFQUAAJGWdlbmVyYXRlX0FQUF9JRCgpAEALLT4tAEELABsGAFwPAIEUCjogaGJfaW5pdChpbml0X2RlbGF5LAAuBykgCgCBPQsASQ9tYXgAMwUALQYAgT4OKiJBUFAAgUAIX2FwcCgAgSEGLAAnDykKCgAlBS0-KwArB21haW5fbG9vcAoKbG9vcCBBUFAADwUgAA4GACUJAIEyD3BpbmcoAIEuDgCBKhEAWQh4AIFfBl9iZWZvcmVfbmV4dAA7BQoKZW5kAIEJCAAnCnF1aXQAgyYFAGQXZG9uZQCBWAcAXBhHb29kIGJ5ZSEAVAoAgxMOIGlzIGZpbmlzaGVkCgpkZXN0cm95IACCQAUAhBgMAINLDmRvbmUgd2l0aACEIwYK&s=earth)
 
-## Implementation details
+The source of the sequence diagram can be found [here](https://www.websequencediagrams.com/?lz=dGl0bGUgSGVhcnRiZWF0IFByb3RvY29sCgpwYXJ0aWNpcGFudCAiSEIgU2VydmVyIgoACw9TdGFydAASBgoABAktPisAEAk6IHN0YXJ0IEFQUAAJGWdlbmVyYXRlX0FQUF9JRCgpAEALLT4tAEELABsGAFwPAIEUCjogaGJfaW5pdChpbml0X2RlbGF5LAAuBykgCgCBPQsASQ9tYXgAMwUALQYAgT4OKiJBUFAAgUAIX2FwcCgAgSEGLAAnDykKCgAlBS0-KwArB21haW5fbG9vcAoKbG9vcCBBUFAADwUgAA4GACUJAIEyD3BpbmcoAIEuDgCBKhEAWQh4AIFfBl9iZWZvcmVfbmV4dAA7BQoKZW5kAIEJCAAnCnF1aXQAgyYFAGQXZG9uZQCBWAcAXBhHb29kIGJ5ZSEAVAoAgxMOIGlzIGZpbmlzaGVkCgpkZXN0cm95IACCQAUAhBgMAINLDmRvbmUgd2l0aACEIwYK&s=earth).
 
-Currently HB Server is a synchronous HTTP server.
-We set its default port to be **8888**.
-For simplicity let us assume here that HB Server runs together
-with the Client Application on the same host.
-Then `HB_URL = http://127.0.0.1:8888` for any client application running on the host.
+## Implementations
 
-HB Clients are expected to send HTTP-GET (or HTTP-POST) requests to the following URL:
-`HB_URL + "/" + HB_COMMAND + "?" + string(TIMEOUT) + "&appid=" + APPLICATION_ID`.
-Note that sending HB messages should not block an application.
- 
-NOTE: 
-* `TIMEOUT` is the expected client's timeout before the next HB message (integer number of [ms]),
-* `APPLICATION_ID` is a unique client application ID
-* The server responds with the maximum interval (integer number of [ms])  it is going to wait before declaring that Application is too late
-* `HB_COMMAND` can be `hb_init` or `hb_ping or `hb_done`. Their usage is as follows:
-  * Setup/Initialization: `HB_COMMAND = hb_init`. To be used by client-application-starter. 
-    NOTE: the initial delay `TIMEOUT` may be elevated in order to account for the client-application initial startup & initialization.
-  * Regular HB ping/pong: `HB_COMMAND = hb_ping`. To be sent from within client-application' main event-handling loop.
-    NOTES:
-    * CLIENT: sends the minimal time interval until next HB (in [ms])
-    * SERVER: responds with the maximal time interval until next HB (in [ms])
-    * in practice one ping in ~5 seconds seems to be enough.
-  * Application closing: `HB_COMMAND = hb_done`. Last communication from finishing application to HB Server.
-    NOTE: delay has no special meaning here. The HB Server response can be arbitrary Goodbye text.
+Clients:
+ * [Python3](client/python/)
+ * [BASH](client/bash/) (helper and wrapper scripts)
+ * [JavaScript](client/js/)
+ * [C using BASH helper script](https://github.com/malex984/appchoo/commit/c0e1701d415b0eafc405c894f62a11131d11f06d)
 
-NOTE: initial `hb_init` can currently also be replaced with `hb_ping`.
-This means that a minimal client can be restricted to only send `hb_ping` messages while it is running.
+Server:
+ * [Python3](server) (with extended monitoring API)
 
-Note: HB Server and Clients are encouraged to obtain HB protocol parameters from ENVIRONMENT VARIABLES, e.g. `APP_ID`, `HB_PORT`, `HB_HOST` or `HB_URL`.
-`HB_URL` should be in sync with `HB_PORT` and/or `HB_HOST` if they are specified.
+### Notes
+ * Clients usually pick up `APP_ID`, `HB_HOST` and `HB_PORT` from the environment, URL parameters or whatever seems appropriate (please check the individual client documentation). Default values are:
+   * `HB_HOST`: `localhost`
+   * `HB_PORT`: `8888`
+ * In practice, meaningful default `TIMEOUT` values for `hb_ping` are between 1000 and 5000 (1s to 5s).
+ * Heartbeat servers may treat an `hb_ping` with unknown `APP_ID` as `hb_init`. 
 
+### Current usage in Hilbert
 
+ * The heartbeat server is running as part of `omd_agent` service, which also contains plugins for checking the system health, including querying the HB server for the current Health status of the currently running top application on the station. For example: [check_heartbeat.py](server/check_heartbeat.py)
+ * Most heartbeat clients currently rely on the bash helper [`hb_wrapper.sh`](client/bash/hb_wrapper.sh) to send `hb_init` and `hb_done` before starting the actual application resp. when application is about to stop (e.g. some exit signal was emitted).
+ * currently, server and client are to be run on the same host (i.e. localhost is used everywhere) only due to the interaction of the heartbeat server with the monitoring agent.
 
-## HB protocol implementations/samples:
-
-Sample Clients:
- * [Sample Client in Python3](client/python/)
- * [helpers, wrappers in BASH](client/bash/)
- * [JS library (with asynchronous HTTP requests in JS)](client/js/). Note: HB protocol parameters may be added into the URL.
- * [Example in C using helper in BASH](https://github.com/malex984/appchoo/commit/c0e1701d415b0eafc405c894f62a11131d11f06d)
-
-Server prototype:
- * [HB Server](server) (currently runs using python 3)
-
-## Current HB usage in Hilbert
-
- * HB Server is running as part of `omd_agent` service, which also contains plugins for checking the system health,
-   including querying the HB server for the current Health status of the currently running top application on the station.
-   For example: [check_heartbeat.py](server/check_heartbeat.py)
- * HB Clients currently rely on the bash helper [`hb_wrapper.sh`](client/bash/hb_wrapper.sh) to send `hb_init` and `hb_done`
- before starting the actual application
- resp. when application is about to stop (e.g. some exit signal was emitted).
-
-NOTE: currently both HB Server and HB Client are to be run on a same host
-(i.e. localhost is used everywhere) only due to HB Server interaction with the monitoring agent.
 
 ## License
-This project is licensed under the [Apache v2 license](LICENSE). See also [Notice](NOTICE).
+All code is this project is subject to the [Apache v2 license](LICENSE).
