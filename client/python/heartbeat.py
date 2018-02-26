@@ -1,86 +1,153 @@
 #! /usr/bin/env python3
 
-from time import time
-from time import sleep
-from random import randint
-
-import os  # environment vars
-from urllib.request import urlopen
+from __future__ import absolute_import, print_function, unicode_literals
 
 import signal
 import sys
+import os  # environment vars
+import logging
+from time import sleep
+from random import randint
 
-PORT_NUMBER = int(os.getenv('HB_PORT', 8888))
-HOST_NAME = os.getenv('HB_HOST', '127.0.0.1')
-HB_SERVER_URL = os.getenv('HB_URL', "http://" + HOST_NAME + ":" + str(PORT_NUMBER))
+from urllib.request import urlopen
+
+
+HB_SERVER_URL = os.getenv('HB_URL', "http://{}:{}".format(
+                os.getenv('HB_HOST', '127.0.0.1'), int(os.getenv('HB_PORT', 8888))))
 
 # For the HB test client:
 APP_ID = os.getenv('APP_ID', 'python_heartbeat_client_demo')
 
-def hb_read(msg):
-    return str(urlopen(HB_SERVER_URL + msg).read().decode('UTF-8'))
+logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s', datefmt='%Y.%m.%d %I:%M:%S %p')
+# %(name)s            Name of the logger (logging channel)
+# %(levelno)s         Numeric logging level for the message (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+# %(levelname)s       Text logging level for the message ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+# %(pathname)s        Full pathname of the source file where the logging call was issued (if available)
+# %(filename)s        Filename portion of pathname
+# %(module)s          Module (name portion of filename)
+# %(lineno)d          Source line number where the logging call was issued (if available)
+# %(funcName)s        Function name
+# %(created)f         Time when the LogRecord was created (time.time() return value)
+# %(asctime)s         Textual time when the LogRecord was created
+# %(msecs)d           Millisecond portion of the creation time
+# %(relativeCreated)d Time in milliseconds when the LogRecord was created,
+#                     relative to the time the logging module was loaded
+#                     (typically at application startup time)
+# %(thread)d          Thread ID (if available)
+# %(threadName)s      Thread name (if available)
+# %(process)d         Process ID (if available)
+# %(message)s         The result of record.getMessage(), computed just as the record is emitted
+
+log = logging.getLogger(__name__)  #
+
+__VERSION_ID = "$Id$"
+
+#def main_exception_handler(type, value, tb):
+#    import traceback
+#    log.exception("Uncaught exception! Type: {0}, Value: {1}, TraceBack: {2}".format(type, value, traceback.format_tb(tb)))
+#
+#sys.excepthook = main_exception_handler # Install exception handler
+
+
+def hb_read(msg, fallback=None):
+    try:
+        return str(urlopen(HB_SERVER_URL + msg).read().decode('UTF-8'))
+    except BaseException as err:
+        log.error("could not send [{}] to [{}]. Error: [{}]".format(msg, HB_SERVER_URL, err))
+        if fallback is None:
+            raise err
+        pass
+
+    return str(fallback)
+
+
+def hb_ping(t, fallback=None):
+    return hb_read("/hb_ping?{}&appid={}".format(t, APP_ID), fallback)
+
+
+def hb_done(t=0, fallback=None):
+    return hb_read("/hb_done?{}&appid={}".format(t, APP_ID), fallback)
+
+
+def hb_init(t, fallback=None):
+    return hb_read("/hb_init?{}&appid={}".format(t, APP_ID), fallback)
+
+
+def hb_list(fallback=None):
+    return hb_read("/list", fallback)
+
+
+def hb_status(ID = None, fallback=None):
+    if ID is None:
+        return hb_read("/status", fallback)
+    else:
+        return hb_read("/status?0&appid={}".format(ID), fallback)
+
 
 def signal_handler(signal, frame):
-    print('NOTE: You pressed Ctrl+C!')
+    log.info('NOTE: You pressed Ctrl+C!')
 
-    tt = hb_read("/hb_done?0" + "&appid=" + APP_ID)
-    print("Goodbye message: ", tt)
+    log.debug("List of all HB apps: {}".format(hb_list(fallback="SORRY: NO HB LIST RESPONSE")))
+    log.debug("Statuses of all HB apps: {}".format(hb_status(fallback="SORRY: NO HB STATUS RESPONSE")))
+    log.debug("Status of [{}]: {}".format(APP_ID, hb_status(APP_ID, fallback="SORRY: NO HB STATUS RESPONSE")))
 
-    print("List HB apps: {}".format(hb_read("/list")))
-    print("APP HB Status: {}".format(hb_read("/status")))
+    tt = hb_done(0, fallback="SORRY: NO HB DONE RESPONSE!")
+    log.info("Goodbye message: [{}]".format(tt))
+
+    log.debug("Final List of all HB apps: {}".format(hb_list(fallback="SORRY: NO HB LIST RESPONSE")))
+    log.debug("Final Statuses of all HB apps: {}".format(hb_status(fallback="SORRY: NO HB STATUS RESPONSE")))
+    log.debug("Final Status of [{}]: {}".format(APP_ID, hb_status(APP_ID, fallback="SORRY: NO HB STATUS RESPONSE")))
 
     sys.exit(0)
+
+
 
 def test_client():
     signal.signal(signal.SIGINT, signal_handler)
 
-    t = float(randint(2000, 5000))
-    #    APP_ID =  # + str(randint(99999999, 9999999999)) # TODO: get unique ID from server?
+    log.debug("List of all HB apps: {}".format(hb_list(fallback="SORRY: NO HB LIST RESPONSE")))
+    log.debug("Statuses of all HB apps: {}".format(hb_status(fallback="SORRY: NO HB STATUS RESPONSE")))
+    log.debug("Status of [{}]: {}".format(APP_ID, hb_status(APP_ID, fallback="SORRY: NO HB STATUS RESPONSE")))
 
-    print("List HB apps: {}".format(hb_read("/list")))
-    print("APP HB Status: {}".format(hb_read("/status")))
-
-    tt = hb_read("/hb_init?" + str(t) + "&appid=" + APP_ID)
-    print("Initial response: ", tt)
+    t = int(randint(100, 2000))
+    tt = hb_init(t, fallback=t)
+    log.info("Initial response: [{}]".format(tt))
 
     overdue = 0
 
     i = 0
-    #    for i in xrange(1, 25):
-    #    while True:
-    while tt != "dead":
+    while True: # infinite look (until process termination)
         i = i + 1
-        d = float(randint(0, int(t* 5.0 / 4.0)))
+        d = float(randint(0, int(t* 7.0)))
 
         try:
             if d > float(tt):
-                print(d, " > ", tt, "?")
+                log.debug("{} > {}!".format(d, tt))
                 overdue += 1
         except:
             pass
 
-        print("heart-beat: ", i, "! Promise: ", t, ", Max: ", tt, ", Delay: ", d, " sec........ overdues?: ", overdue)
+        log.info("Heart-beat: {}! Promise: {}, Max: {}, Delay: {} sec... overdues so far: {}".format(i, t, tt, d, overdue))
         sleep(d/1000.0)
 
         # next heartbeat ping:
-        t = float(randint(0, 5000))
+        t = int(randint(0, 3000))
 
-        #        print "List HB apps: " + urlopen(HB_SERVER_URL + "/list" ).read()
-        #        print "APP HB Status: " + urlopen(HB_SERVER_URL + "/status" ).read()
+        log.debug("Ping: [{}]".format(t))
+        tt = hb_ping(t, fallback=t)
+        log.debug("Pong: [{}]".format(tt))
 
-        print("Ping: ", t)
-        tt = hb_read("/hb_ping?" + str(t) + "&appid=" + APP_ID)
-        print("Pong: ", tt)
+    log.error("Ups: out of infinite loop: something went wrong?!")
+    tt = hb_done(0, fallback="SORRY: NO HB DONE RESPONSE")
+    log.info("Goodbye message: [{}]".format(tt))
 
-    #        print "List HB apps: " + urlopen(HB_SERVER_URL + "/list" ).read()
-    #        print "APP HB Status: " + urlopen(HB_SERVER_URL + "/status" ).read()
+    log.debug("Final List of all HB apps: {}".format(hb_list(fallback="SORRY: NO HB LIST RESPONSE")))
+    log.debug("Final Statuses of all HB apps: {}".format(hb_status(fallback="SORRY: NO HB STATUS RESPONSE")))
+    log.debug("Final Status of [{}]: {}".format(APP_ID, hb_status(APP_ID, fallback="SORRY: NO HB STATUS RESPONSE")))
 
-    print("Ups: we run out of time...")
-    tt = hb_read("/hb_done?0" + "&appid=" + APP_ID)
-    print("Goodbye message: ", tt)
-
-    print("List HB apps: {}".format(hb_read("/list")))
-    print("APP HB Status: {}".format(hb_read("/status")))
 
 if __name__ == '__main__':
+    _log = logging.getLogger()  # root logger!
+    _log.setLevel(logging.DEBUG)
+
     test_client()
