@@ -59,6 +59,17 @@ function _hb_init() { # send hb_init with given timeout and handle the server re
   return ${_ret}
 }
 
+function _hb_ping() { # send hb_init with given timeout and handle the server response
+  local response=$(HB_SEND_PING "$1")
+  local _ret=$?
+  if [[ ${_ret} -ne 0 ]]; then
+    1>&2 echo "ERROR: cannot connect to the heartbeat server via [${HB_URL}]. Error exit code: [${_ret}]"
+  else
+    echo "OK: Heartbeat server ping response: [${response}]"
+  fi
+  return ${_ret}
+}
+
 function _hb_ping_loop() {
     local sleep_time
     local hb_ping_interval="$(bc <<<"scale=2;(${HB_PING_INTERVAL}/1000.0)")"
@@ -138,6 +149,40 @@ function hb() {  # CMD   TIME
 }
 
 ################################################################
+function hb_init() {  # TIME
+  if [[ -z "${APP_ID}" ]]; then
+      1>&2 echo "ERROR: please set [APP_ID]!"
+      exit 1
+  fi
+
+  _hb_init "$@"
+  exit $?
+}
+
+################################################################
+function hb_ping() {  # TIME
+  if [[ -z "${APP_ID}" ]]; then
+      1>&2 echo "ERROR: please set [APP_ID]!"
+      exit 1
+  fi
+
+  _hb_ping "$@"
+  exit $?
+}
+
+################################################################
+function hb_done() {  # [TIME]
+  if [[ -z "${APP_ID}" ]]; then
+      1>&2 echo "ERROR: please set [APP_ID]!"
+      exit 1
+  fi
+
+  _hb_done "$@"
+  exit $?
+}
+
+
+################################################################
 function hb_wrapper() {
   local response
   local _ret
@@ -215,11 +260,19 @@ if [[ $? -ne 0 ]]; then
 fi 
 
 # possible CMDs:
-# hb
-# hb_list
-# hb_status
-# hb_dummy
-# hb_wrapper
+
+# Standard HB API:
+# * hb             hb_message TIMEOUT
+# * hb_init/ping   TIMEOUT
+# * hb_done        [TIMEOUT]
+
+# Wrappers:
+# * hb_dummy       _APP_EXEC_LINE_
+# * hb_wrapper     _APP_EXEC_LINE_
+
+# Sample helpers for our HB Server implemntation written in Python3:
+# * hb_list
+# * hb_status
 
 # echo "CMD: [$CMD]"
 
