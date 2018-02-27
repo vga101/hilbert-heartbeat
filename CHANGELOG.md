@@ -30,9 +30,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Integration of monitoring server (OMD) with dashboard's back-end server via MKLiveStatus
 - First working system prototype using manual configurations
 
-
-[Unreleased]:
-https://github.com/hilbert/hilbert-heartbeat/compare/v0.2.0...HEAD
-
-[0.2.0]
-https://github.com/hilbert/hilbert-heartbeat/compare/v0.1.0...v0.2.0
+[Unreleased]: https://github.com/hilbert/hilbert-heartbeat/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/hilbert/hilbert-heartbeat/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/hilbert/hilbert-heartbeat/compare/v0.0.0...v0.1.0
