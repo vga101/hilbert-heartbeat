@@ -6,11 +6,11 @@ import signal
 import sys
 import os  # environment vars
 import logging
-from time import sleep
+from time import sleep, time
 from random import randint
 
 from urllib.request import urlopen
-
+from urllib import request, parse
 
 HB_SERVER_URL = os.getenv('HB_URL', "http://{}:{}".format(
                 os.getenv('HB_HOST', '127.0.0.1'), int(os.getenv('HB_PORT', 8888))))
@@ -51,7 +51,8 @@ __VERSION_ID = "$Id$"
 
 def hb_read(msg, fallback=None):
     try:
-        return str(urlopen(HB_SERVER_URL + msg).read().decode('UTF-8'))
+        with urlopen(HB_SERVER_URL + msg) as f:
+            return str(f.read().decode('UTF-8'))
     except BaseException as err:
         log.error("could not send [{}] to [{}]. Error: [{}]".format(msg, HB_SERVER_URL, err))
         if fallback is None:
@@ -61,27 +62,41 @@ def hb_read(msg, fallback=None):
     return str(fallback)
 
 
+def hb_post(msg, data, fallback=None):
+    try:
+        req = request.Request(HB_SERVER_URL + msg, data=parse.urlencode(data).encode('utf-8'))  # Post Method is invoked if data != None
+        with urlopen(req) as f:
+            return str(f.read().decode('UTF-8'))
+    except BaseException as err:
+        log.error("could not send [{}] (with payload: [{}]) to [{}]. Error: [{}]".format(msg, data, HB_SERVER_URL, err))
+        if fallback is None:
+            raise err
+        pass
+
+    return str(fallback)
+
+
 def hb_ping(t, fallback=None):
-    return hb_read("/hb_ping?{}&appid={}".format(t, APP_ID), fallback)
+    return hb_read("/hb_ping?{}&appid={}&cache_buster={}".format(t, APP_ID, time()), fallback)
 
 
 def hb_done(t=0, fallback=None):
-    return hb_read("/hb_done?{}&appid={}".format(t, APP_ID), fallback)
+    return hb_post("/hb_done?{}&appid={}&cache_buster={}".format(t, APP_ID, time()), {'appid': APP_ID}, fallback)
 
 
 def hb_init(t, fallback=None):
-    return hb_read("/hb_init?{}&appid={}".format(t, APP_ID), fallback)
+    return hb_post("/hb_init?{}&appid={}&cache_buster={}".format(t, APP_ID, time()), {'appid': APP_ID}, fallback)
 
 
 def hb_list(fallback=None):
-    return hb_read("/list", fallback)
+    return hb_read("/list?cache_buster={}".format(time()), fallback)
 
 
 def hb_status(ID = None, fallback=None):
     if ID is None:
-        return hb_read("/status", fallback)
+        return hb_read("/status?cache_buster={}".format(time()), fallback)
     else:
-        return hb_read("/status?0&appid={}".format(ID), fallback)
+        return hb_read("/status?0&appid={}&cache_buster={}".format(ID, time()), fallback)
 
 
 def signal_handler(signal, frame):

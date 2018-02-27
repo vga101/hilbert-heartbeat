@@ -11,17 +11,25 @@ export HB_URL="http://${HB_HOST}:${HB_PORT}"
 ################################################################
 function HB_SEND() {  # REQ
   local REQ="$1"
-  wget -q -O- "${HB_URL}${REQ}" 2>/dev/null || curl -s -L -XGET -- "${HB_URL}${REQ}" 2>/dev/null
+  wget -q -O- --header='Accept-Encoding: gzip, deflate' "${HB_URL}${REQ}" 2>/dev/null || curl -s -L -X GET -- "${HB_URL}${REQ}" 2>/dev/null
   return $?
 }
 
 function HB_SEND_MESSAGE() { # signal  timeout/interval
-  HB_SEND "/$1?$2&appid=${APP_ID}"
+  HB_SEND "/$1?$2&appid=${APP_ID}&cache_buster=$(date +%N)"
+  return $?
+}
+
+function HB_POST_MESSAGE() { # signal  timeout/interval
+  local REQ="/$1?$2&appid=${APP_ID}&cache_buster=$(date +%N)"
+  local DATA="{\"appid\":\"${APP_ID}\"}"
+  wget -q -O- --header='Accept-Encoding: gzip, deflate' --header='Accept-Charset: UTF-8' --header='Content-Type: application/json' --post-data="${DATA}" "${HB_URL}${REQ}" 2>/dev/null || \
+    curl -s -H "Accept: application/json" -H "Content-Type:application/json" -L -X POST --data "${DATA}"-- "${HB_URL}${REQ}" 2>/dev/null
   return $?
 }
 
 function HB_SEND_INIT() {  #  INTERVAL
-  HB_SEND_MESSAGE "hb_init" "$1"
+  HB_POST_MESSAGE "hb_init" "$1"
   return $?
 }
 
@@ -31,7 +39,7 @@ function HB_SEND_PING() {  #  INTERVAL [in ms]!
 }
 
 function HB_SEND_DONE() {  #  INTERVAL
-  HB_SEND_MESSAGE "hb_done" "$1"
+  HB_POST_MESSAGE "hb_done" "$1"
   return $?
 }
 
@@ -75,7 +83,6 @@ function _hb_ping_loop() {
     local hb_ping_interval="$(bc <<<"scale=2;(${HB_PING_INTERVAL}/1000.0)")"
     echo "Waiting for BG process [${PID}]... while sending pings every [${HB_PING_INTERVAL}] ms..."
 
-#    local number_regexp='^-?[0-9]+\([\.][0-9]+\)?$'
     local ret
 
     while ps -o pid | grep -q "^[[:space:]]*"${PID}"[[:space:]]*$"
@@ -86,11 +93,6 @@ function _hb_ping_loop() {
         1>&2 echo "WARNING: non-successful heartbeat server ping! Exit code: [${ret}], Response: [$sleep_time]!"
       fi
 
-#      if [[ "${sleep_time}" =~ "${number_regexp}" ]]; then
-#        # try to convert the server response into [ms]:
-#        sleep_time="$(bc <<<"scale=2;(${sleep_time}/1000.0)")"
-#      else
-#        1>&2 echo "ERROR: pong is not a number: [${sleep_time}]! Using fallback: [${hb_ping_interval}]."
       sleep_time="$(bc <<<"scale=2;(${sleep_time}/1000.0)")"
       if [[ $? -ne 0 ]]; then
         1>&2 echo "ERROR: pong is not a number: [${sleep_time}]! Using fallback: [${hb_ping_interval}]."
@@ -122,18 +124,18 @@ function _hb_trap_handler() {
 
 ################################################################
 function hb_list() {
-  HB_SEND "/list"
+  HB_SEND "/list?cache_buster=$(date +%N)"
   exit $?
 }
 
 ################################################################
 function hb_status() {
   if [[ -z "${APP_ID}" ]]; then
-    HB_SEND "/status"
+    HB_SEND "/status?cache_buster=$(date +%N)"
     exit $?
   fi
 
-  HB_SEND "/status?appid=${APP_ID}"
+  HB_SEND "/status?appid=${APP_ID}&cache_buster=$(date +%N)"
   exit $?
 }
 
