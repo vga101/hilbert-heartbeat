@@ -1,20 +1,26 @@
-# Change Log
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
 ## [0.2.0] - 2017-04-18
-- [Semantic Versioning](http://semver.org/)
-- Changelog according to (http://keepachangelog.com/)
-- License: Apache v2
-- Git branching model
-- Merging original Gists 
-- Fixed Heartbeat Server for Python 3
+### Added
+- Merging original scattered Gists
+- Changelog according to [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+- Apache v2 license
 
 ### Changed
-- Restructurization of older `malex984/dockapp` to `hilbert/hilbert-*`
+- Split [`malex984/dockapp`](https://github.com/malex984/dockapp) into [`hilbert/hilbert-*`](https://github.com/hilbert)
+- Git branching model
+
+### Fixed 
+- Heartbeat Server for Python 3
 
 ### Security 
-- Starting to remove `sudo` and `privileged` requirements 
+- Started to remove `sudo` and `privileged` requirements 
 
 ## [0.1.0] - 2016-09-02
 ### Added
