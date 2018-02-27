@@ -3,24 +3,23 @@
 #set -v #set -x
 
 ### HB: ENV. VARS...
-export HB_HOST=${HB_HOST:-localhost}
-export HB_PORT=${HB_PORT:-8888}
-export HB_URL="http://${HB_HOST}:${HB_PORT}"
+DEFAULT_URL="http://${HB_HOST:-127.0.0.1}:${HB_PORT:-8888}"
+export HB_URL=${HB_URL:-$DEFAULT_URL}
 
 ################################################################
 ################################################################
-function HB_SEND() {  # REQ
+function HB_SEND() {  # Send HTTP GET REQUEST with specified path to the HB server specified by HB_URL
   local REQ="$1"
   wget -q -O- --header='Accept-Encoding: gzip, deflate' "${HB_URL}${REQ}" 2>/dev/null || curl -s -L -X GET -- "${HB_URL}${REQ}" 2>/dev/null
   return $?
 }
 
-function HB_SEND_MESSAGE() { # signal  timeout/interval
+function HB_SEND_MESSAGE() { # signal  timeout/interval - Send specified HB signal to HB server with specified timeout and global Application ID
   HB_SEND "/$1?$2&appid=${APP_ID}&cache_buster=$(date +%N)"
   return $?
 }
 
-function HB_POST_MESSAGE() { # signal  timeout/interval
+function HB_POST_MESSAGE() { # signal  timeout/interval - Send specified HB signal to HB server with specified timeout and global Application ID via HTTP POST. 
   local REQ="/$1?$2&appid=${APP_ID}&cache_buster=$(date +%N)"
   local DATA="{\"appid\":\"${APP_ID}\"}"
   wget -q -O- --header='Accept-Encoding: gzip, deflate' --header='Accept-Charset: UTF-8' --header='Content-Type: application/json' --post-data="${DATA}" "${HB_URL}${REQ}" 2>/dev/null || \
@@ -28,24 +27,25 @@ function HB_POST_MESSAGE() { # signal  timeout/interval
   return $?
 }
 
-function HB_SEND_INIT() {  #  INTERVAL
+function HB_SEND_INIT() {  #  INTERVAL - send HB_INIT signal to HB server
   HB_POST_MESSAGE "hb_init" "$1"
   return $?
 }
 
-function HB_SEND_PING() {  #  INTERVAL [in ms]!
+function HB_SEND_PING() {  #  INTERVAL - send HB_PING signal to HB server
   HB_SEND_MESSAGE "hb_ping" "$1"
   return $?
 }
 
-function HB_SEND_DONE() {  #  INTERVAL
-  HB_POST_MESSAGE "hb_done" "$1"
+function HB_SEND_DONE() {  #  INTERVAL - send HB_DONE signal to HB server
+  local t="$1"
+  HB_POST_MESSAGE "hb_done" "${t:-0}"
   return $?
 }
 
 ################################################################
 ################################################################
-function _hb_done() {
+function _hb_done() { # send hb_done with optionally given timeout and handle the server response
   local response=$(HB_SEND_DONE "$1")
   local _ret=$?
   if [[ ${_ret} -ne 0 ]]; then
@@ -67,7 +67,7 @@ function _hb_init() { # send hb_init with given timeout and handle the server re
   return ${_ret}
 }
 
-function _hb_ping() { # send hb_init with given timeout and handle the server response
+function _hb_ping() { # send hb_ping with given timeout and handle the server response
   local response=$(HB_SEND_PING "$1")
   local _ret=$?
   if [[ ${_ret} -ne 0 ]]; then
@@ -78,7 +78,7 @@ function _hb_ping() { # send hb_init with given timeout and handle the server re
   return ${_ret}
 }
 
-function _hb_ping_loop() {
+function _hb_ping_loop() {  # send hb_pings in a loop (with BG application is running), with timeout given by $HB_PING_INTERVALsleep according to those timeouts or server responses. Requires external calculator tool: `bc` to convert [ms] to [seconds]
     local sleep_time
     local hb_ping_interval="$(bc <<<"scale=2;(${HB_PING_INTERVAL}/1000.0)")"
     echo "Waiting for BG process [${PID}]... while sending pings every [${HB_PING_INTERVAL}] ms..."
@@ -104,7 +104,7 @@ function _hb_ping_loop() {
     return 0
 }
 
-function _hb_trap_handler() {
+function _hb_trap_handler() {  # EXIT signal handler to send HB_DONE (if necessary) and make sure to terminate BG application
   echo "TRYING TO HANDLE AN EXIT SIGNAL: "
   if [[ ${PID} -ne 0 ]]; then
     echo "TRYING TO KILL the BG Main process [${PID}]: "
@@ -123,13 +123,13 @@ function _hb_trap_handler() {
 }
 
 ################################################################
-function hb_list() {
+################################################################
+function hb_list() { # Query HB server for current applications
   HB_SEND "/list?cache_buster=$(date +%N)"
   exit $?
 }
 
-################################################################
-function hb_status() {
+function hb_status() { # [APP_ID] Query HB server for the host status or the status of individual application (if specified)
   if [[ -z "${APP_ID}" ]]; then
     HB_SEND "/status?cache_buster=$(date +%N)"
     exit $?
@@ -140,7 +140,7 @@ function hb_status() {
 }
 
 ################################################################
-function hb() {  # CMD   TIME
+function hb() {  # CMD   TIME - Send generic HB command (with a timeout) via HTTP GET. NOTE: this is deprecated! Please switch to using high-level helpers/functions!
   if [[ -z "${APP_ID}" ]]; then
       1>&2 echo "ERROR: please set [APP_ID]!"
       exit 1
@@ -150,8 +150,7 @@ function hb() {  # CMD   TIME
   exit $?
 }
 
-################################################################
-function hb_init() {  # TIME
+function hb_init() {  # TIME  # send hb_init with given timeout & globally specified appliction ID and handle the server response
   if [[ -z "${APP_ID}" ]]; then
       1>&2 echo "ERROR: please set [APP_ID]!"
       exit 1
@@ -161,8 +160,7 @@ function hb_init() {  # TIME
   exit $?
 }
 
-################################################################
-function hb_ping() {  # TIME
+function hb_ping() {  # TIME # send hb_ping with given timeout & globally specified appliction ID and handle the server response
   if [[ -z "${APP_ID}" ]]; then
       1>&2 echo "ERROR: please set [APP_ID]!"
       exit 1
@@ -172,8 +170,7 @@ function hb_ping() {  # TIME
   exit $?
 }
 
-################################################################
-function hb_done() {  # [TIME]
+function hb_done() {  # [TIME] # send hb_done with optionally given timeout & globally specified appliction ID and handle the server response
   if [[ -z "${APP_ID}" ]]; then
       1>&2 echo "ERROR: please set [APP_ID]!"
       exit 1
@@ -185,7 +182,7 @@ function hb_done() {  # [TIME]
 
 
 ################################################################
-function hb_wrapper() {
+function hb_wrapper() { # _BG_APP_EXEC_LINE_. High-level helper: can send all HB signals and wait in FG, while some application is running in BG. Behaviour is controlled via env.vars.
   local response
   local _ret
 
@@ -238,7 +235,7 @@ function hb_wrapper() {
 }
 
 ################################################################
-function hb_dummy() { # also send HB pings while main process runs in background...
+function hb_dummy() { # _BG_APP_EXEC_LINE_. High-level helper which makes sure to send HB pings while main process runs in BG...
   export HB_SEND_PING="${HB_SEND_PING:-true}"
   hb_wrapper "$@"
   exit $?
@@ -269,8 +266,8 @@ fi
 # * hb_done        [TIMEOUT]
 
 # Wrappers:
-# * hb_dummy       _APP_EXEC_LINE_
-# * hb_wrapper     _APP_EXEC_LINE_
+# * hb_dummy       _BG_APP_EXEC_LINE_
+# * hb_wrapper     _BG_APP_EXEC_LINE_
 
 # Sample helpers for our HB Server implemntation written in Python3:
 # * hb_list
