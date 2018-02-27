@@ -12,7 +12,7 @@ from random import randint
 from urllib.request import urlopen
 from urllib import request, parse
 
-HB_SERVER_URL = os.getenv('HB_URL', "http://{}:{}".format(
+HB_URL = os.getenv('HB_URL', "http://{}:{}".format(
                 os.getenv('HB_HOST', '127.0.0.1'), int(os.getenv('HB_PORT', 8888))))
 
 # For the HB test client:
@@ -51,10 +51,10 @@ __VERSION_ID = "$Id$"
 
 def hb_read(msg, fallback=None):
     try:
-        with urlopen(HB_SERVER_URL + msg) as f:
+        with urlopen(HB_URL + msg) as f:
             return str(f.read().decode('UTF-8'))
     except BaseException as err:
-        log.error("could not send [{}] to [{}]. Error: [{}]".format(msg, HB_SERVER_URL, err))
+        log.error("could not send [{}] to [{}]. Error: [{}]".format(msg, HB_URL, err))
         if fallback is None:
             raise err
         pass
@@ -64,11 +64,11 @@ def hb_read(msg, fallback=None):
 
 def hb_post(msg, data, fallback=None):
     try:
-        req = request.Request(HB_SERVER_URL + msg, data=parse.urlencode(data).encode('utf-8'))  # Post Method is invoked if data != None
+        req = request.Request(HB_URL + msg, data=parse.urlencode(data).encode('utf-8'))  # Post Method is invoked if data != None
         with urlopen(req) as f:
             return str(f.read().decode('UTF-8'))
     except BaseException as err:
-        log.error("could not send [{}] (with payload: [{}]) to [{}]. Error: [{}]".format(msg, data, HB_SERVER_URL, err))
+        log.error("could not send [{}] (with payload: [{}]) to [{}]. Error: [{}]".format(msg, data, HB_URL, err))
         if fallback is None:
             raise err
         pass
