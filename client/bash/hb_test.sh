@@ -11,6 +11,6 @@ function hb_test() {
   _hb_done 2
 }
 
-source ./hb.sh
+source ./heartbeat.sh
 
 
