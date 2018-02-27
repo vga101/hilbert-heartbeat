@@ -25,9 +25,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.1.0] - 2016-09-02
 ### Added
 - Monitoring server and agents
-- Heartbeat Server 
-- Heartbeat Wrappers and Clients in bash and JS
-- Integration of monitoring server (OMD) with Dashboard's back-end server via MKLiveStatus
+- Heartbeat server 
+- Heartbeat wrappers and clients in Bash and JavaScript
+- Integration of monitoring server (OMD) with dashboard's back-end server via MKLiveStatus
 - First working system prototype using manual configurations
 
 
