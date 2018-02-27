@@ -56,7 +56,7 @@ Server:
 
 ### Current usage in Hilbert
 
- * The heartbeat server is running as part of `omd_agent` service, which also contains plugins for checking the system health, including querying the HB server for the current Health status of the currently running top application on the station. For example: [check_heartbeat.py](server/check_heartbeat.py)
+ * The heartbeat server is running as part of `omd_agent` service, which also contains plugins for checking the system health, including querying the HB server for the current Health status of the currently running top application on the station. For example: [check_heartbeat.py](client/python/check_heartbeat.py)
  * Most heartbeat clients currently rely on the bash helper [`hb_wrapper.sh`](client/bash/hb_wrapper.sh) to send `hb_init` and `hb_done` before starting the actual application resp. when application is about to stop (e.g. some exit signal was emitted).
  * currently, server and client are to be run on the same host (i.e. localhost is used everywhere) only due to the interaction of the heartbeat server with the monitoring agent.
 

@@ -53,7 +53,7 @@ CRITICAL - no application record for queried ID: [Tetris]
 ```
 
 ### Code examples
- * [check_heartbeat.py](../server/check_heartbeat.py)
+ * [check_heartbeat.py](../client/python/check_heartbeat.py)
  * [function `check_hilbert_heartbeat` from `check_hilbert.sh`](https://github.com/hilbert/hilbert-docker-images/blob/devel/images/omd_agent/check_hilbert.sh)
  * [prototype client in Python3](../client/python/)
  * [helpers in BASH](../client/bash/)
