@@ -30,6 +30,8 @@ The server must accepts three different commands via `HTTP` `GET`:
 
 The server must accept the same requests via `POST` as well to account for certain limitations in the way client libraries work. In this case, no response needs to send by the server.
 
+Additional query parameters are irgnored. This way you can e.g. bypass browser cache by adding a `cache_buster=TIMESTAMP` parameter that uses a unique `TIMESTAMP` for each request.
+
 ### Sequence diagram
 
 ![Protocol Sequence Diagram:](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgSGVhcnRiZWF0IFByb3RvY29sCgpwYXJ0aWNpcGFudCAiSEIgU2VydmVyIgoACw9TdGFydAASBgoABAktPisAEAk6IHN0YXJ0IEFQUAAJGWdlbmVyYXRlX0FQUF9JRCgpAEALLT4tAEELABsGAFwPAIEUCjogaGJfaW5pdChpbml0X2RlbGF5LAAuBykgCgCBPQsASQ9tYXgAMwUALQYAgT4OKiJBUFAAgUAIX2FwcCgAgSEGLAAnDykKCgAlBS0-KwArB21haW5fbG9vcAoKbG9vcCBBUFAADwUgAA4GACUJAIEyD3BpbmcoAIEuDgCBKhEAWQh4AIFfBl9iZWZvcmVfbmV4dAA7BQoKZW5kAIEJCAAnCnF1aXQAgyYFAGQXZG9uZQCBWAcAXBhHb29kIGJ5ZSEAVAoAgxMOIGlzIGZpbmlzaGVkCgpkZXN0cm95IACCQAUAhBgMAINLDmRvbmUgd2l0aACEIwYK&s=earth)
