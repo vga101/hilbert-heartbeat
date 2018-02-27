@@ -174,7 +174,8 @@ class HeartBeatHandler(BaseHTTPRequestHandler):
                     ID = q[6:]
                     break
 
-#        s.log_message("Parser: cmd=[{}], ID=[{}], query={}".format(path, ID, query))
+#        s.log_message("Method: {}, URL path parsing => cmd: [{}], ID: [{}], query: {}".format(httpRequestMethod, path, ID, query))
+
         global visits
 
         if path == "/list":
@@ -237,7 +238,7 @@ class HeartBeatHandler(BaseHTTPRequestHandler):
             s.write_response(T)  # send PONG in ms
 
         else:
-            s.log_error("[%s ms] Wrong request: [%s] with ID: [%s] and T: [%s]", s.path, ID, str(T))
+            s.log_error("Wrong request: [%s] with ID: [%s] and T: [%s]", s.path, ID, str(T))
             s.write_response_headers(code=400)
             s.write_response("ERROR: cannot process your request: [{}]".format(s.path))
         return
