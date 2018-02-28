@@ -18,9 +18,9 @@
 #### Low-level:
   * `HB_SEND_MESSAGE cmd timeout`: send a generic HB command (with specified `timeout`) via HTTP GET
   * `HB_POST_MESSAGE cmd timeout`: send a generic HB command (with specified `timeout`) via HTTP POST
-  * 'HB_SEND_INIT timeout`: send `HB_INIT` message with given timeout to HB server
-  * 'HB_SEND_PING timeout`: send `HB_PING` signal with given timeout to HB server
-  * 'HB_SEND_DONE [timeout=0]`: send `HB_DONE` signal with given timeout to HB server
+  * `HB_SEND_INIT timeout`: send `HB_INIT` message with given timeout to HB server
+  * `HB_SEND_PING timeout`: send `HB_PING` signal with given timeout to HB server
+  * `HB_SEND_DONE [timeout=0]`: send `HB_DONE` signal with given timeout to HB server
 
 #### Middle-level:
   * `_hb_init timeout`: send `HB_INIT` message with given timeout and handle the server response
