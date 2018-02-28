@@ -49,7 +49,7 @@ __VERSION_ID = "$Id$"
 #sys.excepthook = main_exception_handler # Install exception handler
 
 
-def hb_read(msg, fallback=None):  # send a message via HTTP GET to HB Server specified by global HB_URL settiing
+def hb_http_get(msg, fallback=None):  # send a message via HTTP GET to HB Server specified by global HB_URL settiing
     try:
         with urlopen(HB_URL + msg) as f:
             return str(f.read().decode('UTF-8'))
@@ -62,7 +62,7 @@ def hb_read(msg, fallback=None):  # send a message via HTTP GET to HB Server spe
     return str(fallback)
 
 
-def hb_post(msg, data, fallback=None):  # send a message (incl. data) via HTTP POST to HB Server specified by global HB_URL settiing
+def hb_http_post(msg, data, fallback=None):  # send a message (incl. data) via HTTP POST to HB Server specified by global HB_URL settiing
     try:
         req = request.Request(HB_URL + msg, data=parse.urlencode(data).encode('utf-8'))  # Post Method is invoked if data != None
         with urlopen(req) as f:
@@ -77,26 +77,26 @@ def hb_post(msg, data, fallback=None):  # send a message (incl. data) via HTTP P
 
 
 def hb_ping(t, fallback=None):  # send HB_PING message to HB Server
-    return hb_read("/hb_ping?{}&appid={}&cache_buster={}".format(t, APP_ID, time()), fallback)
+    return hb_http_get("/hb_ping?{}&appid={}&cache_buster={}".format(t, APP_ID, time()), fallback)
 
 
 def hb_done(t=0, fallback=None):  # send HB_DONE message to HB Server 
-    return hb_post("/hb_done?{}&appid={}&cache_buster={}".format(t, APP_ID, time()), {'appid': APP_ID}, fallback)
+    return hb_http_post("/hb_done?{}&appid={}&cache_buster={}".format(t, APP_ID, time()), {'appid': APP_ID}, fallback)
 
 
 def hb_init(t, fallback=None):  # send HB_INIT message to HB Server
-    return hb_post("/hb_init?{}&appid={}&cache_buster={}".format(t, APP_ID, time()), {'appid': APP_ID}, fallback)
+    return hb_http_post("/hb_init?{}&appid={}&cache_buster={}".format(t, APP_ID, time()), {'appid': APP_ID}, fallback)
 
 
 def hb_list(fallback=None):  # query the list of client IDs from HB Server
-    return hb_read("/list?cache_buster={}".format(time()), fallback)
+    return hb_http_get("/list?cache_buster={}".format(time()), fallback)
 
 
 def hb_status(ID = None, fallback=None):  # query the status of a client host (or of specified application) from HB Server
     if ID is None:
-        return hb_read("/status?cache_buster={}".format(time()), fallback)
+        return hb_http_get("/status?cache_buster={}".format(time()), fallback)
     else:
-        return hb_read("/status?0&appid={}&cache_buster={}".format(ID, time()), fallback)
+        return hb_http_get("/status?0&appid={}&cache_buster={}".format(ID, time()), fallback)
 
 
 def signal_handler(signal, frame):

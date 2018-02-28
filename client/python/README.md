@@ -30,8 +30,8 @@ Note that `HB_HOST=localhost` and `HB_PORT=8888` are actually the default values
 Additionally, this client library provides extended functionality to communicate with the [Python 3 server](../../server):
 
 * low-level communication (sending HTTP requests):
-  * `heartbeat.hb_read(path [,errorReturnValue])`: send an `HTTP GET` request (with specified path) to HTTP server specified by global `HB_URL` setting.
-  * `heartbeat.hb_post(path, data [,errorReturnValue])`: send an `HTTP POST` request (with specified path, incl. data) to HTTP server specified by global `HB_URL` setting.
+  * `heartbeat.hb_http_get(path [,errorReturnValue])`: send an `HTTP GET` request (with specified path) to HTTP server specified by global `HB_URL` setting.
+  * `heartbeat.hb_http_post(path, data [,errorReturnValue])`: send an `HTTP POST` request (with specified path, incl. data) to HTTP server specified by global `HB_URL` setting.
 * additional query functionality of the current heartbeat server:
   * `heartbeat.hb_list([errorReturnValue])`: query the heartbeat server to get a list of currently tracked client application IDs
   * `heartbeat.hb_status([ID [,errorReturnValue]])`: query the heartbeat server to get a status of a the host (or of the sepcified application)
