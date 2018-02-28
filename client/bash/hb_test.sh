@@ -4,7 +4,7 @@ export APP_ID='test_bash'
 #HB_PORT='8888'
 export HB_HOST='localhost'
 
-function hb_test() {
+function hb_test() {  # NOTE: should be the same as "$0.sh"!
   echo "HB_URL: [${HB_URL}]"
   _hb_init 500
   _hb_ping 1000
