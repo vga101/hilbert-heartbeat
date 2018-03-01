@@ -172,6 +172,7 @@ class HeartBeatHandler(BaseHTTPRequestHandler):
             for q in query:
                 if q.startswith('appid='):
                     ID = q[6:]
+                    ID = ID + " @ " + s.client_address[0]  # " || " + s.headers['User-Agent'] # for backward compatibility with monitoring-related tools!
                     break
 
 #        s.log_message("Method: {}, URL path parsing => cmd: [{}], ID: [{}], query: {}".format(httpRequestMethod, path, ID, query))
