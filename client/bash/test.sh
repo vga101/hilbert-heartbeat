@@ -8,12 +8,19 @@ export HB_HOST='localhost'
 export HB_BASH_LIBRARY=1
 source ./heartbeat.sh
 
-function hb_test() {
+function main() {  # do basic interaction with the HB-server
+  echo "APP_ID: [${APP_ID}]"
   echo "HB_URL: [${HB_URL}]"
-  _hb_init 500
-  _hb_ping 1000
-  _hb_done 2
+  _hb_init 100
+  _hb_ping 100
+  sleep 0.1
+  _hb_ping 666
+  sleep 6.0
+  _hb_done 0
+  return $?
 }
 
-hb_test "$@"
+main "$@"
 exit $?
+
+
