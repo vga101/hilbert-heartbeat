@@ -248,38 +248,43 @@ function hb_dummy() { # _BG_APP_EXEC_LINE_. High-level helper which makes sure t
 }
 
 ################################################################
+function _default_main_entry() {  # do the trick a-la busybox executable sharing (using links)
+
+  # Check the symbolic link to the script to
+  readonly CMD="$(basename "$0" '.sh' | grep -E '^hb')"
+  if [[ $? -ne 0 ]]; then
+    1>&2 echo "ERROR: wrong command/link-name: [$0]!"
+    exit 2
+  fi
+
+  # check for such a known function
+  declare -f "${CMD}" &>/dev/null
+  if [[ $? -ne 0 ]]; then
+    1>&2 echo "ERROR: unknown command: [${CMD}]!"
+    exit 2
+  fi
+
+  # possible CMDs:
+
+  # Standard HB API:
+  # * hb             hb_message TIMEOUT
+  # * hb_init/ping   TIMEOUT
+  # * hb_done        [TIMEOUT]
+
+  # Wrappers:
+  # * hb_dummy       _BG_APP_EXEC_LINE_
+  # * hb_wrapper     _BG_APP_EXEC_LINE_
+
+  # Sample helpers for our HB Server implemntation written in Python3:
+  # * hb_list
+  # * hb_status
+
+  # echo "Running: [$CMD]"
+
+  ${CMD} "$@"
+  exit $?
+}
+
 ################################################################
-
-# Check the symbolic link to the script to
-readonly CMD="$(basename "$0" '.sh' | grep -E '^hb')"
-if [[ $? -ne 0 ]]; then
-  1>&2 echo "ERROR: wrong command/link-name: [$0]!"
-  exit 2
-fi 
-
-# check for such a known function
-declare -f "${CMD}" &>/dev/null
-if [[ $? -ne 0 ]]; then
-  1>&2 echo "ERROR: unknown command: [${CMD}]!"
-  exit 2
-fi 
-
-# possible CMDs:
-
-# Standard HB API:
-# * hb             hb_message TIMEOUT
-# * hb_init/ping   TIMEOUT
-# * hb_done        [TIMEOUT]
-
-# Wrappers:
-# * hb_dummy       _BG_APP_EXEC_LINE_
-# * hb_wrapper     _BG_APP_EXEC_LINE_
-
-# Sample helpers for our HB Server implemntation written in Python3:
-# * hb_list
-# * hb_status
-
-# echo "CMD: [$CMD]"
-
-${CMD} "$@"
-exit $?
+################################################################
+[[ ! -v HB_BASH_LIBRARY ]] && _default_main_entry "$@"
