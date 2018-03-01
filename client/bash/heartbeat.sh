@@ -23,7 +23,7 @@ function HB_POST_MESSAGE() { # signal  timeout/interval - Send specified HB sign
   local REQ="/$1?$2&appid=${APP_ID}&cache_buster=$(date +%N)"
   local DATA="{\"appid\":\"${APP_ID}\"}"
   wget -q -O- --header='Accept-Encoding: gzip, deflate' --header='Accept-Charset: UTF-8' --header='Content-Type: application/json' --post-data="${DATA}" "${HB_URL}${REQ}" 2>/dev/null || \
-    curl -s -H "Accept: application/json" -H "Content-Type:application/json" -L -X POST --data "${DATA}"-- "${HB_URL}${REQ}" 2>/dev/null
+    curl -s -H "Accept: application/json" -H "Content-Type:application/json" -L -X POST --data "${DATA}" -- "${HB_URL}${REQ}" 2>/dev/null
   return $?
 }
 
@@ -46,10 +46,12 @@ function HB_SEND_DONE() {  #  INTERVAL - send HB_DONE signal to HB server
 ################################################################
 ################################################################
 function _hb_done() { # send hb_done with optionally given timeout and handle the server response
-  local response=$(HB_SEND_DONE "$1")
-  local _ret=$?
+  local _ret
+  local response
+  response=$(HB_SEND_DONE "$1")
+  _ret=$?
   if [[ ${_ret} -ne 0 ]]; then
-    1>&2 echo "ERROR: cannot connect to the heartbeat server via [${HB_URL}]. Error exit code: [${_ret}]"
+    1>&2 echo "ERROR: cannot connect to the heartbeat server via [${HB_URL}]. Cannot send DONE. Error exit code: [${_ret}]"
   else
     echo "OK: Heartbeat server done response: [${response}]"
   fi
@@ -57,10 +59,12 @@ function _hb_done() { # send hb_done with optionally given timeout and handle th
 }
 
 function _hb_init() { # send hb_init with given timeout and handle the server response
-  local response=$(HB_SEND_INIT "$1")
-  local _ret=$?
+  local _ret
+  local response
+  response=$(HB_SEND_INIT "$1")
+  _ret=$?
   if [[ ${_ret} -ne 0 ]]; then
-    1>&2 echo "ERROR: cannot connect to the heartbeat server via [${HB_URL}]. Error exit code: [${_ret}]"
+    1>&2 echo "ERROR: cannot connect to the heartbeat server via [${HB_URL}]. Cannot send INIT. Error exit code: [${_ret}]"
   else
     echo "OK: Heartbeat server init response: [${response}]"
   fi
@@ -68,10 +72,12 @@ function _hb_init() { # send hb_init with given timeout and handle the server re
 }
 
 function _hb_ping() { # send hb_ping with given timeout and handle the server response
-  local response=$(HB_SEND_PING "$1")
-  local _ret=$?
+  local _ret
+  local response
+  response=$(HB_SEND_PING "$1")
+  _ret=$?
   if [[ ${_ret} -ne 0 ]]; then
-    1>&2 echo "ERROR: cannot connect to the heartbeat server via [${HB_URL}]. Error exit code: [${_ret}]"
+    1>&2 echo "ERROR: cannot connect to the heartbeat server via [${HB_URL}]. Cannot send PING. Error exit code: [${_ret}]"
   else
     echo "OK: Heartbeat server ping response: [${response}]"
   fi
