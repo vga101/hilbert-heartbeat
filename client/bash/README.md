@@ -1,68 +1,67 @@
-# Client interaction with the prototype HB server using pure BASH
+# Bash clients
 
-**NOTE**: here under BASH we mean BASH >= 4
+The clients in this directory implement the [Hilbert heartbeat base protocol](../../README.md), but also the additional status queries supported by the [Python 3 server](../../server). The different files contain:
+- [`heartbeat.sh`](heartbeat.sh): The heartbeat client library and an application entry point for other scripts.
+- `hb*.sh`: Symlinks to [`heartbeat.sh`](heartbeat.sh) that trigger different actions based on the symlink name.
+- [`test.sh`](test.sh): A simplistic heartbeat test client that utilizes the [`heartbeat.sh`](heartbeat.sh) library (needs to be in the same directory).
+- [`check_heartbeat.sh`](check_heartbeat.sh): A simplistic and standalone status query test client that is compatible with the [Python 3 server](../../server).
 
-## Client HB library in BASH
+## Dependencies
+The scripts require at least Bash 4 as well as either `wget` or `curl` in the `PATH`.
 
-[heartbeat.sh](heartbeat.sh) is a BASH library for interacting with HB server. As a library it povides the following functionality:
+## Settings
 
-**NOTE**:
- * networking errors will be detected in low-level functions and corresponding (non-zero) exit code is returned. High-level functions and helpers also print an OK message with the server response to STDOUT or an ERROR message to STDERR.
- * all timeouts and intervals should be in [ms] = 1/1000 of a second
+All scripts recognize certain environment variables:
+- `HB_HOST`: the hostname/IP of the heartbeat server (default: `127.0.0.1`)
+- `HB_PORT`: the port of the heartbeat server (default: `8888`)
+- `HB_URL`: combined host, port and protocol (default: `http://HB_HOST:HB_PORT`)
 
+Most of the scripts also accept
+- `APP_ID`: the application ID (default: none)
 
-### Generic HB functionality:
+## Command line usage
 
-**NOTE**: the following functions require `APP_ID` to be set.
+### Single heartbeat commands
 
-#### Low-level:
-  * `HB_SEND_MESSAGE cmd timeout`: send a generic HB command (with specified `timeout`) via HTTP GET
-  * `HB_POST_MESSAGE cmd timeout`: send a generic HB command (with specified `timeout`) via HTTP POST
-  * `HB_SEND_INIT timeout`: send `HB_INIT` message with given timeout to HB server
-  * `HB_SEND_PING timeout`: send `HB_PING` signal with given timeout to HB server
-  * `HB_SEND_DONE [timeout=0]`: send `HB_DONE` signal with given timeout to HB server
+- `APP_ID=appid ./hb_init.sh timeout`: Send a `hb_init` command with given `timeout` [ms] via `HTTP POST`
+- `APP_ID=appid ./hb_ping.sh timeout`: Send a `hb_ping` command with given `timeout` [ms]  via `HTTP GET`
+- `APP_ID=appid ./hb_done.sh timeout`: Send a `hb_done` command with given `timeout` [ms]  via `HTTP POST`
+- `APP_ID=appid ./hb.sh cmd timeout`: Send arbitrary commands with given `timeout` [ms] via `HTTP GET` **(deprecated)**
 
-#### Middle-level:
-  * `_hb_init timeout`: send `HB_INIT` message with given timeout and handle the server response
-  * `_hb_ping timeout`: send `HB_PING` message with given timeout and handle the server response
-  * `_hb_done [timeout=0]`: send `HB_DONE` message with optionally given timeout and handle the server response
+### Wrapper scripts
+
+- `APP_ID=appid ./hb_wrapper.sh cmd [args]`: Launch `cmd` in the background, wait for it to exit and
+  - if `HB_SEND_INIT=true`, send `hb_init` before `cmd` is executed
+  - if `HB_SEND_PING=true`, send regular `hb_ping`s while `cmd` is running
+  - if `HB_SEND_DONE=true`, send `hb_done` once `cmd` exited
+- `APP_ID=appid hb_dummy.sh cmd [args]`: Equal to `APP_ID=appid HB_SEND_INIT=true HB_SEND_PING=true HB_SEND_DONE=true ./hb_wrapper.sh cmd [args]`.
+
+### Monitoring
+
+These extended commands only work with the [Python 3 server](../../server).
+
+- `./hb_list.sh`: List all applications IDs currently monitored.
+- `./hb_status.sh [appid]`: Retrieve detailed status information for an `appid` or for all known application IDs if `appid` is missing.
+
+## Library usage
+
+It is possible to use `heartbeat.sh` as a Bash library:
+```
+export HB_BASH_LIBRARY=1
+source ./heartbeat.sh
+```
 
 #### High-level wrappers/helpers
+Each of the `hb*.sh` command line tools has a corresponding function in `heartbeat.sh` that you can call directly in your script. `hb_init.sh` just calls the `hb_init` function with the same arguments ans so forth. 
 
-**NOTE**: directly accesible from comman-line as separate tools via separate symbolic links.
+#### Middle-level:
+  * `_hb_init timeout`: send `HB_INIT` message with given timeout and handle the server response.
+  * `_hb_ping timeout`: send `HB_PING` message with given timeout and handle the server response.
+  * `_hb_done [timeout=0]`: send `HB_DONE` message with optionally given timeout and handle the server response.
 
-  * `hb_init timeout`: send a single `HB_INIT` message to HB server (with specified `timeout`)
-  * `hb_ping timeout`: send a single `HB_PING` message to HB server (with specified `timeout`)
-  * `hb_done [timeout=0]`: send a single `HB_DONE` message to HB server (with specified `timeout` or with `0` by default)
-  *  (**deprecated!) `hb cmd timeout`: send a generic HB command (with specified `timeout`) via HTTP GET. Please use high-level helpers/functions instead!
-  * `hb_dummy _BG_APP_EXEC_LINE_`: make sure to send HB pings while specified application runs in BG.
-  * `hb_wrapper _BG_APP_EXEC_LINE_`: can optionally send any of HB messages and wait in FG, while specified application is running in BG. Behaviour is controlled via a set of environment variables:
-     * `HB_SEND_INIT`, `HB_SEND_PING`, `HB_SEND_DONE` boolean switches (`true`, `false`) for sending corresponding HB messages
-     * `HB_INIT_TIMEOUT`, `HB_PING_INTERVAL`, `HB_DONE_TIMEOUT` - corresponding intervals/timeouts.
-
-### High-level **query** functionality:
-**NOTE**: directly accesible from comman-line as separate tools via separate symbolic links.
-
-  * `hb_list`: Query HB server for current client IDs
-  * `hb_status`: Query HB server for the host status or the status of individual client (if `APP_ID` is specified)
-
-### Settings:
-
-The following environment variables may be required in order to use the library:  
- * `APP_ID`: Application ID will NOT be set by default! It will be required for any functionality involving HB_INIT, HB_PING or HB_DONE! 
- * `HB_URL`: HB server connection URL (default is `127.0.0.1:8888`)
-
-
-### Library usage examples:
-* [Basic HB test using heartbeat client library](hb_test.sh). It can be run directly (e.g. with `./hb_test.sh`).
-  This sample requires `heartbeat.sh` to be in the same directory.
-* One can run any GUI application (e.g. a browser) with any command-line arguments using provided helpers (`hb_dummy.sh` and `hb_wrapper.sh`). For example: 
-  `APP_ID=app ./hb_dummy.sh browser.sh <URL>` it is the same as 
-  `APP_ID=app HB_SEND_INIT=true HB_SEND_PING=true HB_SEND_DONE=true ./hb_wrapper.sh browser.sh <URL>`
-
-
-## Additional standalone host HB status query in BASH
-
-Sample query is in [check_heartbeat.py](check_heartbeat.sh). 
-It can be run directly (e.g. with `./check_heartbeat.sh`). 
-This query check is independent from the above client HB library.
+#### Low-level:
+  * `HB_SEND_MESSAGE cmd timeout`: send a generic heartbeat command (with specified `timeout`) via `HTTP GET`.
+  * `HB_POST_MESSAGE cmd timeout`: send a generic heartbeat command (with specified `timeout`) via `HTTP POST`.
+  * `HB_SEND_INIT timeout`: send `HB_INIT` message with given timeout.
+  * `HB_SEND_PING timeout`: send `HB_PING` signal with given timeout.
+  * `HB_SEND_DONE [timeout=0]`: send `HB_DONE` signal with given timeout.
