@@ -7,50 +7,41 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - General and API documentation
-- Protocol:
-  - support for `HTTP` `POST` requests
+- Protocol and implementations:
+  - support for `HTTP POST` requests
+- All clients:
+  - bypass caches by adding a `cache_buster` into the query string
 - Bash client:
-  - add support for sending HTTP POST (in addition to existing HTTP GET)
-  - add `cache_buster` into request string
-  - wrappers for all heartbeat commands
-  - wrappers for all heartbeat-query
-  - test sample and query check
+  - wrappers for all heartbeat commands and monitoring query
+  - `hb_dummy.sh`: sends fake heartbeats for a applications that doesn't support it
+  - `hb_wrapper.sh`: like `hb_dummy.sh`, but sends only `hb_ping` and `hb_done`
+  - example scripts for heartbeat and monitoring
 - Python client:
-  - add support for sending HTTP POST (in addition to existing HTTP GET)
-  - add `cache_buster` into request string
-  - test sample and query check
   - handler for `Ctrl-C`
+  - example scripts for heartbeat and monitoring
 - JavaScript client:
   - public API to send heartbeats explicitly
   - zero interval disables automatic heartbeats
 
 ### Changed
 - Directory structure of project repository
-- Protocol:
+- Protocol and implementations:
   - `TIMEOUT` unit is now milliseconds
 - Bash client:
   - improved settings handling (e.g. `HB_URL`, `APP_ID`)
   - single multi-purpose script (similar to busybox) - also useable as a library
   - switched to using `wget` (with `curl` as a fallback) internally
-  - `hb_wrapper.sh`: wrapper for sending (customizable) HB init/done resp. before/after running some application in background
-  - `hb_dummy.sh`: wrapper for sending (customizable) HB init/pings/done resp. before/while/after running some application in background
 - JavaScript client:
   - use protocol of containing website by default (`//` instead of `http://`)
   - requests time out after a couple of seconds
   - cancel pending asynchronous requests before sending synchronous request
 - Separation of Python server and client
-- HB server
+- Server
   - improved settings handling (e.g. `HB_URL`, `APP_ID`)
-  - switched to Python 3
-  - internal rewrite to improve stability, add more code structure and avoid using Timers
-  - status reporting now have an overdue ratio instead of a simple counter + adjustable thresholds
-  - suport for POST requests (equally to GET)
+  - status reporting now has an overdue ratio instead of a simple counter + adjustable thresholds
 - Python client:
   - improved settings handling (e.g. `HB_URL`, `APP_ID`)
-  - switched to Python 3
-  - also useable as a library
-
-### Deprecated
+  - also usable as a library
 
 ### Removed
 - Python 2.x support
@@ -61,6 +52,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - broken initialization after delayed loading
 - Python server:
   - empty status message on first app delay
+  - stability problems related to `Timer`s
 
 ### Security
 
