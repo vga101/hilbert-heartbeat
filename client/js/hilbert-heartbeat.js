@@ -124,7 +124,7 @@
         }
         
         this._private._createHeartbeatUrl = function(command, interval) {
-            return that._private.url + "/" + command + "?" + (interval/1000.0) + "&appid=" + that._private.appId + "&cache_buster=" + new Date().getTime();
+            return that._private.url + "/" + command + "?" + (interval) + "&appid=" + that._private.appId + "&cache_buster=" + new Date().getTime();
         }
 
         {

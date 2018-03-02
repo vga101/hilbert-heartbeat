@@ -1,64 +1,67 @@
-# Current Heartbeat design
+# Hilbert heartbeat
 
-We set HB server default port be **8888**.
-Moreover for simplicity we assume that **HB Server runs on the client host and serves a single client host**.
-Therefore `HB_URL = http://localhost:8888` for any client application.
+This repository contains the protocol definition and implementations of notification based health-check mechanism, subsequently called heartbeat.
 
-ps: the current prototype `server/heartbeat2.py` contains:
-* HB Server, which can be started with: python2 heartbeat2.py -s (any argument)
-* HB Client testing application, which can be started with: python2 heartbeat2.py (no arguments)
+## HTTP Protocol
+The system consists of a HTTP client that sends heartbeat notifications and a HTTP server thats keeps track of these notifications and possible delays.
 
-NOTE: currently both HB Server and HB Client are to be run on a same host
-(i.e. localhost is used everywhere) only due to HB Server interaction with the monitoring agent.
+After an application registers at the heartbeat server, it is supposed to send periodic heartbeats until it deregisters (to be deliberately stopped). If the heartbeats are not sent in time, the application is considered to be in a defective state by the heartbeat server which in turn may forward this information to a higher-level monitoring system. The time until the next heartbeat is supposed to be send is configurable in each request.
 
-All HB-Client communications are HTTP-GET-Request at `HB_URL + "/" + HB_COMMAND + "?" + string(T) + "&appid=" + APP_ID`
- 
-NOTE: 
-* `T` is the client's expected delay, `APP_ID` is a unique client application ID
-* The server responds with the maximum time it is going to wait 
-* `HB_COMMAND` is `hb_init` or `hb_ping or `hb_done` as follows:
-  * Setup/Initialization: `HB_COMMAND = hb_init`. To be used by client-application-starter. 
-    NOTE: the initial delay `T` may be elevated in order to account for the client-application initial startup & initialization.
-  * Regular Heartbeat ping/pong: `HB_COMMAND = hb_ping`. To be sent from within client-application' main loop.  
-  * Application closing: `HB_COMMAND = hb_done`. Last communication from application to HB Server. 
-    NOTE: delay has no special meaning here.
+### REST API
+The server must accepts three different commands via `HTTP` `GET`: 
+* `/hb_init?TIMEOUT&appid=APPLICATION_ID`: Register an application.  
+  * Parameters:
+    * `TIMEOUT` [ms]: The supplied value should account for application startup and initialization. The server must not consider the application delayed before this timeout.
+    * `APPLICATION_ID` [string]: The application ID to register.
+  * Response:
+    * [ms]: The actual timeout used by the server. Must be >= `TIMEOUT`.
+* `/hb_ping?TIMEOUT&appid=APPLICATION_ID`: Send a heartbeat.  
+  * Parameters:
+    * `TIMEOUT` [ms]: The value should generally be the same during application lifetime, but may be adjusted temporarily to account for long running computations. The server must not consider the application delayed before this timeout.
+    * `APPLICATION_ID` [string]: The application ID this ping belongs to.
+  * Response:
+    * [ms]: The actual timeout used by the server. Must be >= `TIMEOUT`.
+* `/hb_done?TIMEOUT&appid=APPLICATION_ID`: Deregister an application. Further heartbeats must not be sent for this application afterwards.  
+  * Parameters:
+    * `TIMEOUT` [ms]: Time until the application is supposed to have shutdown completely.
+    * `APPLICATION_ID` [string]: The application ID to deregister.
+  * Response:
+    * [string]: Arbitrary goodbye message.
 
+The server must accept the same requests via `POST` as well to account for certain limitations in the way client libraries work. In this case, no response needs to send by the server.
 
-![Protocol Sequence Diagram:](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgSGVhcnRiZWF0IFByb3RvY29sCgpwYXJ0aWNpcGFudCAiTmFnaW9zIEFnZW50IgAND0hCIFNlcnZlciIKCm5vdGUgb3ZlcgAKDVN0YXJ0cyBvbiBjbGllbnQKYmVmb3JlIGFueSBBUFAgb3IKc3RhdHVzIHF1ZXJ5CmVuZCBub3RlCgB3DwBDBQBjBQpsb29wIEhCIFMAMgZRdWVyeWluZwoAgRwOLT4rAIEtDjogY2hlY2tfZG9ja2FwcF9oAIFxCC5zaAApEwCBUQo6IACBHAYoKQoAgWYLLS0-LQBREG5vX2FwcF8AgUsGAIEAEAAPIWVuZAoKCgCBYQktPisAgW0JAH4FcnQgQVBQAAkZZ2VuZXJhdGVfQVBQX0lEKCkAQAstPi0AQQsAGwYAXA8AgWQMaGJfaW5pdChpbml0X2RlbGF5LAAuBykgAIFzEQCBGgptYXgAMwUALQYAgg2BHEFQUACCfCoAIgsAgx4FAIMXCyoiQVBQAIMWCF9hcHAoAIJ3BiwAgX0PKQoKACUFLT4rACsHbWFpbl9sb29wAIVJB0FQUAAPBSAADgYAJQkAgwgPcGluZygAgwQOAIUEEQBZCHgAgzUGXwCGbAZfbmV4dAA7BQCBQIFZAIMYBgCCYwUAgX4KcXVpdAoKAII4GmRvbmUAgy8HAIIzGEdvb2QgYnllIQBUCgCGQA4gaXMgZmluaXNoZWQKCmRlc3Ryb3kgAIQXBQCHRQwAhngOZG9uZSB3aXRoAIdQBgCHeYFd&s=modern-blue)
+Additional query parameters are irgnored. This way you can e.g. bypass browser cache by adding a `cache_buster=TIMESTAMP` parameter that uses a unique `TIMESTAMP` for each request.
 
+### Sequence diagram
 
+![Protocol Sequence Diagram:](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgSGVhcnRiZWF0IFByb3RvY29sCgpwYXJ0aWNpcGFudCAiSEIgU2VydmVyIgoACw9TdGFydAASBgoABAktPisAEAk6IHN0YXJ0IEFQUAAJGWdlbmVyYXRlX0FQUF9JRCgpAEALLT4tAEELABsGAFwPAIEUCjogaGJfaW5pdChpbml0X2RlbGF5LAAuBykgCgCBPQsASQ9tYXgAMwUALQYAgT4OKiJBUFAAgUAIX2FwcCgAgSEGLAAnDykKCgAlBS0-KwArB21haW5fbG9vcAoKbG9vcCBBUFAADwUgAA4GACUJAIEyD3BpbmcoAIEuDgCBKhEAWQh4AIFfBl9iZWZvcmVfbmV4dAA7BQoKZW5kAIEJCAAnCnF1aXQAgyYFAGQXZG9uZQCBWAcAXBhHb29kIGJ5ZSEAVAoAgxMOIGlzIGZpbmlzaGVkCgpkZXN0cm95IACCQAUAhBgMAINLDmRvbmUgd2l0aACEIwYK&s=earth)
 
-# Heartbeat protocol implementations:
- * [Server (in python 2)](server/heartbeat2.py)
- * [BASH helpers, wrappers and samples](client/bash/)
- * [C Sample (based on BASH samples)](https://github.com/malex984/appchoo/commit/c0e1701d415b0eafc405c894f62a11131d11f06d)
- * [JS library (with asynchronous HTTP requests in JS)](client/web/hilbert-heartbeat.js)
+The source of the sequence diagram can be found [here](https://www.websequencediagrams.com/?lz=dGl0bGUgSGVhcnRiZWF0IFByb3RvY29sCgpwYXJ0aWNpcGFudCAiSEIgU2VydmVyIgoACw9TdGFydAASBgoABAktPisAEAk6IHN0YXJ0IEFQUAAJGWdlbmVyYXRlX0FQUF9JRCgpAEALLT4tAEELABsGAFwPAIEUCjogaGJfaW5pdChpbml0X2RlbGF5LAAuBykgCgCBPQsASQ9tYXgAMwUALQYAgT4OKiJBUFAAgUAIX2FwcCgAgSEGLAAnDykKCgAlBS0-KwArB21haW5fbG9vcAoKbG9vcCBBUFAADwUgAA4GACUJAIEyD3BpbmcoAIEuDgCBKhEAWQh4AIFfBl9iZWZvcmVfbmV4dAA7BQoKZW5kAIEJCAAnCnF1aXQAgyYFAGQXZG9uZQCBWAcAXBhHb29kIGJ5ZSEAVAoAgxMOIGlzIGZpbmlzaGVkCgpkZXN0cm95IACCQAUAhBgMAINLDmRvbmUgd2l0aACEIwYK&s=earth).
 
+## Implementations
 
+Clients:
+ * [Python3](client/python/)
+ * [BASH](client/bash/) (helper and wrapper scripts)
+ * [JavaScript](client/js/)
+ * [C using BASH helper script](https://github.com/malex984/appchoo/commit/c0e1701d415b0eafc405c894f62a11131d11f06d)
 
-# Original Heartbeat design
+Server:
+ * [Python3](server) (with extended monitoring API)
 
-## Heartbeat brainstorming:
- * WebGL: add to render loop (initiate)
- * multi-thread / asynchron sending (should not block the application)
- * non-blocking i/o
- * how often: 1 beat per second (or less)?
- * `TCP/IP` connection: leave open?
- * `GET` request sending: add into URL "ID exhibit, heartbeat expectation" (selbstverpflichtung) => The server knows the IP (computer).
- * initial setup for monitoring software (also list of programs which run on which host)
-   * startup via Nagios?
- * maintenance mode could be added (you put station on maintenance), if a station is not expected to be running (in order to avoid automatic restart during maintenance)
+### Notes
+ * Clients usually pick up `APP_ID`, `HB_HOST` and `HB_PORT` from the environment, URL parameters or whatever seems appropriate (please check the individual client documentation). Default values are:
+   * `HB_HOST`: `localhost`
+   * `HB_PORT`: `8888`
+ * In practice, meaningful default `TIMEOUT` values for `hb_ping` are between 1000 and 5000 (1s to 5s).
+ * Heartbeat servers may treat an `hb_ping` with unknown `APP_ID` as `hb_init`. 
 
-## Heartbeat protocol:
- * pass protocol parameters into container via ENVIRONMENT VARIABLES, e.g. `HB_URL=http://HB_HOST:HB_PORT/heartbeat.html?container=pong&next=%n`:
-   * application substitutes %n with minimal time until next heartbeart	(milliseconds) and sends GET request
-   * server answers with maximal time for next heartbeart (>minimal heartbeat time) (otherwise it will take some action)
- * ENVIRONMENT PARAMETERS are passed by url parameters into browser based applications some API exposed by electron for kiosk applications?
- * CLIENT: send minimal time until next heartbeat (ms)
- * SERVER: send maximal time until next heartbeat (ms)
- * when container is starting, the management system is waiting for some predefined time (15 seconds? same as regular waiting time when the app is running properly) before expecting the first heartbeat; afterwards the protocol is self tuning
+### Current usage in Hilbert
+
+ * The heartbeat server is running as part of `omd_agent` service, which also contains plugins for checking the system health, including querying the HB server for the current Health status of the currently running top application on the station. For example: [check_heartbeat.py](client/python/check_heartbeat.py)
+ * Most heartbeat clients currently rely on the bash helper [`hb_wrapper.sh`](client/bash/hb_wrapper.sh) to send `hb_init` and `hb_done` before starting the actual application resp. when application is about to stop (e.g. some exit signal was emitted).
+ * currently, server and client are to be run on the same host (i.e. localhost is used everywhere) only due to the interaction of the heartbeat server with the monitoring agent.
 
 
 ## License
-This project is licensed under the [Apache v2 license](LICENSE). See also [Notice](NOTICE).
-
+All code is this project is subject to the [Apache v2 license](LICENSE).
