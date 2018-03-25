@@ -15,12 +15,12 @@ function HB_SEND() {  # Send HTTP GET REQUEST with specified path to the HB serv
 }
 
 function HB_SEND_MESSAGE() { # signal  timeout/interval - Send specified HB signal to HB server with specified timeout and global Application ID
-  HB_SEND "/$1?$2&appid=${APP_ID}&cache_buster=$(date +%N)"
+  HB_SEND "/$1?$2&appid=${APP_ID}&cache_buster=$(date +%s_%N)"
   return $?
 }
 
 function HB_POST_MESSAGE() { # signal  timeout/interval - Send specified HB signal to HB server with specified timeout and global Application ID via HTTP POST. 
-  local REQ="/$1?$2&appid=${APP_ID}&cache_buster=$(date +%N)"
+  local REQ="/$1?$2&appid=${APP_ID}&cache_buster=$(date +%s_%N)"
   local DATA="{\"appid\":\"${APP_ID}\"}"
   wget -q -O- --header='Accept-Encoding: gzip, deflate' --header='Accept-Charset: UTF-8' --header='Content-Type: application/json' --post-data="${DATA}" "${HB_URL}${REQ}" 2>/dev/null || \
     curl -s -H "Accept: application/json" -H "Content-Type:application/json" -L -X POST --data "${DATA}" -- "${HB_URL}${REQ}" 2>/dev/null
@@ -131,17 +131,17 @@ function _hb_trap_handler() {  # EXIT signal handler to send HB_DONE (if necessa
 ################################################################
 ################################################################
 function hb_list() { # Query HB server for current applications
-  HB_SEND "/list?cache_buster=$(date +%N)"
+  HB_SEND "/list?cache_buster=$(date +%s_%N)"
   exit $?
 }
 
 function hb_status() { # [APP_ID] Query HB server for the host status or the status of individual application (if specified)
   if [[ -z "${APP_ID}" ]]; then
-    HB_SEND "/status?cache_buster=$(date +%N)"
+    HB_SEND "/status?cache_buster=$(date +%s_%N)"
     exit $?
   fi
 
-  HB_SEND "/status?appid=${APP_ID}&cache_buster=$(date +%N)"
+  HB_SEND "/status?appid=${APP_ID}&cache_buster=$(date +%s_%N)"
   exit $?
 }
 
