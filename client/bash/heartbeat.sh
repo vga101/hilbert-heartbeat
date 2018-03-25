@@ -110,23 +110,54 @@ function _hb_ping_loop() {  # send hb_pings in a loop (with BG application is ru
     return 0
 }
 
+# NOTE: the collowing is due to https://stackoverflow.com/a/2183063
+function _trap_handler_setup() {  # setup signal handlers
+  local func="$1"
+  shift
+  local varname="$1"
+  shift
+  for sig ; do
+    trap "${func} ${varname} ${sig}" "${sig}"
+  done
+  return 0
+}
+
 function _hb_trap_handler() {  # EXIT signal handler to send HB_DONE (if necessary) and make sure to terminate BG application
-  echo "TRYING TO HANDLE AN EXIT SIGNAL: "
-  if [[ ${PID} -ne 0 ]]; then
-    echo "TRYING TO KILL the BG Main process [${PID}]: "
-    kill -SIGTERM "${PID}"
-    sleep 3
-    kill -SIGKILL "${PID}"
-    sleep 1
-    echo "TRYING TO WAIT for the Main process [${PID}]: "
-    wait "${PID}" # TODO: is this required?
-    PID="0"
-    echo "Sending HB DONE message!"
-    _hb_done "${HB_DONE_TIMEOUT:-0}"
+  ### Usage example:
+  # _trap_handler_setup "_hb_trap_handler" "PID" 0 # 1 2 3 13 15
+  # echo "TRYING TO WAIT for the Main process [${PID}]: "
+  # wait "${PID}"
+  # _ret=$?
+  # PID=0
+  # exit ${_ret}
+
+  rv=$?
+#  echo "Ret. code: [$rv]?"
+  local var="$1" # NOTE: **Name** of global variable with PID of BG process
+  local pid=${!var} # NOTE: current value of PID
+  shift
+  local sig="$1" # signal to handle
+  shift
+  echo "PID of BG process: [${pid}]. TRYING TO HANDLE SIGNAL [${sig}]: "
+
+
+  if [[ ${pid} -ne 0 ]]; then
+    if [[ "${sig}" -ne 0 ]]; then
+      echo "TRYING TO PASS the signal [${sig}] the BG process: "
+      kill "-${sig}" "${pid}" && sleep 1
+    fi
+
+    echo "TRYING TO KILL the BG Main process: "
+    kill "${pid}" && sleep 1
+    kill -SIGKILL "${pid}"
   fi
 
-  exit 143; # 128 + 15 -- SIGTERM
+  echo "Sending HB DONE message!"
+  _hb_done "${HB_DONE_TIMEOUT:-0}"
+#  echo "Ret. code: [$rv]!"
+#  exit ${rv}
 }
+
 
 ################################################################
 ################################################################
@@ -211,7 +242,9 @@ function hb_wrapper() { # _BG_APP_EXEC_LINE_. High-level helper: can send all HB
   export HB_DONE_TIMEOUT="${HB_DONE_TIMEOUT:-0}"
 
   # hook hb_done on several signals/interrupt
-  [[ "x${HB_SEND_DONE}" == "xtrue" ]] && trap '{ _hb_trap_handler ; exit 255 ; }' EXIT SIGTERM SIGINT SIGHUP
+  if [[ "x${HB_SEND_DONE}" == "xtrue" ]]; then
+    _trap_handler_setup "_hb_trap_handler" "PID" 0 # 1 2 3 13 15
+  fi
 
   # send initial INIT signal?  
   if [[ "x${HB_SEND_INIT}" == "xtrue" ]]; then 
@@ -221,18 +254,19 @@ function hb_wrapper() { # _BG_APP_EXEC_LINE_. High-level helper: can send all HB
   # Main Application is run as follows:
   echo "Starting [$@] in background: "
   exec "$@" &
-  PID="$!"
+  PID="${!}"
   echo "=> PID for BG process is [${PID}]"
 
   if [[ "x${HB_SEND_PING}" == "xfalse" ]]; then
     # no need in HB PINGs?
     echo "Switching [${PID}] to foreground!"
-    wait "${PID}"
-    _ret=$?
   else
     _hb_ping_loop
-    _ret=$?
   fi
+  echo "TRYING TO WAIT for the Main process [${PID}]: "
+  wait "${PID}"
+  _ret=$?
+  PID=0
 
 #  if [[ "x${HB_SEND_DONE}" == "xtrue" ]]; then
 #    _hb_done "${HB_DONE_TIMEOUT}" # || exit $?
