@@ -157,7 +157,7 @@ class HeartBeatHandler(BaseHTTPRequestHandler):
 
         # NOTE: PARSING: s.path as follows: path ? T & appid = ID [& ...] :
         # NOTE: URL "localhost:8888/hb_init?482&appid=test_client_python" should be parsed as follows:
-        #         '/hb_init', '482', 'appid=test_client_python']
+        #         'hb_init', '482', 'appid=test_client_python']
 
         tail = ''
         if path.find('?') >= 0:
@@ -175,18 +175,21 @@ class HeartBeatHandler(BaseHTTPRequestHandler):
                     ID = ID + " @ " + s.client_address[0]  # " || " + s.headers['User-Agent'] # for backward compatibility with monitoring-related tools!
                     break
 
+        assert path[0] == '/'
+        path = path.rsplit(sep='/', maxsplit=1)[1]
+
 #        s.log_message("Method: {}, URL path parsing => cmd: [{}], ID: [{}], query: {}".format(httpRequestMethod, path, ID, query))
 
         global visits
 
-        if path == "/list":
+        if path == "list":
             # NOTE: list currently tracked visits
             s.write_response_headers()
             for k, v in visits.items():
                 s.write_response(str(k) + "\n")
             return
 
-        if path == "/status":
+        if path == "status":
             s.write_response_headers()
             s.write_status(ID=ID)
             return
@@ -207,15 +210,15 @@ class HeartBeatHandler(BaseHTTPRequestHandler):
         # If ID is currently unknown: Actions are as follows:
         # init, ping => create new visit record
         # done => nothing to do
-        if path == "/hb_done":  # Delete record for finished APP
+        if path == "hb_done":  # Delete record for finished APP
             if ID in visits:
                 s.log_message('[%s ms] Destruction of [%s]', str(ts), ID)
                 del visits[ID]
             s.write_response_headers()
             s.write_response("So Long, and Thanks for All the Fish!")
 
-        elif (((path == "/hb_init") or (path == "/hb_ping")) and (ID not in visits)):  # ADD NEW visit
-            if path == "/hb_ping":
+        elif (((path == "hb_init") or (path == "hb_ping")) and (ID not in visits)):  # ADD NEW visit
+            if path == "hb_ping":
                 s.log_message('WARNING: application {} started with hb_ping instead of hb_init!'.format(ID))
             # Hello little brother! Big Brother is watching you!
             s.log_message('[%s ms] Construction of [%s]', str(ts), ID)
@@ -223,8 +226,8 @@ class HeartBeatHandler(BaseHTTPRequestHandler):
             s.write_response_headers()
             s.write_response(T)  # send PONG in ms
 
-        elif (((path == "/hb_ping") or (path == "/hb_init")) and (ID in visits)): # UPDATE on subsequent PINGs
-            if path == "/hb_init":
+        elif (((path == "hb_ping") or (path == "hb_init")) and (ID in visits)): # UPDATE on subsequent PINGs
+            if path == "hb_init":
                 s.log_message('WARNING: application {} has beed already reported! It should not send hb_init after hb_ping or hb_init!'.format(ID))
 
             s.log_message('[%s ms] Update of [%s]', str(ts), ID)
