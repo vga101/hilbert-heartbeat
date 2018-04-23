@@ -10,7 +10,7 @@ export HB_URL=${HB_URL:-$DEFAULT_URL}
 ################################################################
 function HB_SEND() {  # Send HTTP GET REQUEST with specified path to the HB server specified by HB_URL
   local REQ="$1"
-  wget -q -O- --header='Accept-Encoding: gzip, deflate' "${HB_URL}${REQ}" 2>/dev/null || curl -s -L -X GET -- "${HB_URL}${REQ}" 2>/dev/null
+  wget -t 2 -T 2 -q -O- --header='Accept-Encoding: gzip, deflate' "${HB_URL}${REQ}" 2>/dev/null || curl -s --connect-timeout 2 -m 4 -L -X GET -- "${HB_URL}${REQ}" 2>/dev/null
   return $?
 }
 
@@ -22,8 +22,8 @@ function HB_SEND_MESSAGE() { # signal  timeout/interval - Send specified HB sign
 function HB_POST_MESSAGE() { # signal  timeout/interval - Send specified HB signal to HB server with specified timeout and global Application ID via HTTP POST. 
   local REQ="/$1?$2&appid=${APP_ID}&cache_buster=$(date +%s_%N)"
   local DATA="{\"appid\":\"${APP_ID}\"}"
-  wget -q -O- --header='Accept-Encoding: gzip, deflate' --header='Accept-Charset: UTF-8' --header='Content-Type: application/json' --post-data="${DATA}" "${HB_URL}${REQ}" 2>/dev/null || \
-    curl -s -H "Accept: application/json" -H "Content-Type:application/json" -L -X POST --data "${DATA}" -- "${HB_URL}${REQ}" 2>/dev/null
+  wget -t 2 -T 2 -q -O- --header='Accept-Encoding: gzip, deflate' --header='Accept-Charset: UTF-8' --header='Content-Type: application/json' --post-data="${DATA}" "${HB_URL}${REQ}" 2>/dev/null || \
+    curl -s --connect-timeout 2 -m 4 -H "Accept: application/json" -H "Content-Type:application/json" -L -X POST --data "${DATA}" -- "${HB_URL}${REQ}" 2>/dev/null
   return $?
 }
 
