@@ -18,26 +18,6 @@ HB_URL = os.getenv('HB_URL', "http://{}:{}".format(
 # For the HB test client:
 APP_ID = os.getenv('APP_ID', 'python_heartbeat_client_demo')
 
-logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s', datefmt='%Y.%m.%d %I:%M:%S %p')
-# %(name)s            Name of the logger (logging channel)
-# %(levelno)s         Numeric logging level for the message (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-# %(levelname)s       Text logging level for the message ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
-# %(pathname)s        Full pathname of the source file where the logging call was issued (if available)
-# %(filename)s        Filename portion of pathname
-# %(module)s          Module (name portion of filename)
-# %(lineno)d          Source line number where the logging call was issued (if available)
-# %(funcName)s        Function name
-# %(created)f         Time when the LogRecord was created (time.time() return value)
-# %(asctime)s         Textual time when the LogRecord was created
-# %(msecs)d           Millisecond portion of the creation time
-# %(relativeCreated)d Time in milliseconds when the LogRecord was created,
-#                     relative to the time the logging module was loaded
-#                     (typically at application startup time)
-# %(thread)d          Thread ID (if available)
-# %(threadName)s      Thread name (if available)
-# %(process)d         Process ID (if available)
-# %(message)s         The result of record.getMessage(), computed just as the record is emitted
-
 log = logging.getLogger(__name__)  #
 
 __VERSION_ID = "$Id$"
@@ -118,6 +98,28 @@ def signal_handler(signal, frame):
 
 
 def test_client():
+    _log = logging.getLogger()  # root logger!
+    _log.setLevel(logging.DEBUG)
+    logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s', datefmt='%Y.%m.%d %I:%M:%S %p')
+    # %(name)s            Name of the logger (logging channel)
+    # %(levelno)s         Numeric logging level for the message (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    # %(levelname)s       Text logging level for the message ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+    # %(pathname)s        Full pathname of the source file where the logging call was issued (if available)
+    # %(filename)s        Filename portion of pathname
+    # %(module)s          Module (name portion of filename)
+    # %(lineno)d          Source line number where the logging call was issued (if available)
+    # %(funcName)s        Function name
+    # %(created)f         Time when the LogRecord was created (time.time() return value)
+    # %(asctime)s         Textual time when the LogRecord was created
+    # %(msecs)d           Millisecond portion of the creation time
+    # %(relativeCreated)d Time in milliseconds when the LogRecord was created,
+    #                     relative to the time the logging module was loaded
+    #                     (typically at application startup time)
+    # %(thread)d          Thread ID (if available)
+    # %(threadName)s      Thread name (if available)
+    # %(process)d         Process ID (if available)
+    # %(message)s         The result of record.getMessage(), computed just as the record is emitted
+
     signal.signal(signal.SIGINT, signal_handler)
 
     log.debug("List of all HB apps: {}".format(hb_list(fallback="SORRY: NO HB LIST RESPONSE")))
@@ -162,7 +164,4 @@ def test_client():
 
 
 if __name__ == '__main__':
-    _log = logging.getLogger()  # root logger!
-    _log.setLevel(logging.DEBUG)
-
     test_client()
